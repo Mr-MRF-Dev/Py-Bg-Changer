@@ -36,11 +36,11 @@ If a saved name clashes with a command (say, one called `list`), use `pbc set li
 
 ## Supported desktops
 
-| OS | Notes |
-|----|-------|
-| Windows | Built in, nothing extra needed |
-| macOS | Built in (uses `osascript`) |
-| Linux | GNOME, Budgie, Cinnamon, MATE, KDE Plasma, XFCE and Sway work out of the box. Anything else (i3, bspwm, ...) falls back to `feh` or `nitrogen` if installed. |
+| OS      | Notes                                                                                                                                                        |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Windows | Built in, nothing extra needed                                                                                                                               |
+| macOS   | Built in (uses `osascript`)                                                                                                                                  |
+| Linux   | GNOME, Budgie, Cinnamon, MATE, KDE Plasma, XFCE and Sway work out of the box. Anything else (i3, bspwm, ...) falls back to `feh` or `nitrogen` if installed. |
 
 ## Config
 
