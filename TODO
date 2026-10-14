@@ -1,0 +1,5 @@
+# TODO
+
+- set the default wallpaper to a specific image (use it only call `pbc` with no arguments)
+- copy images into a cache folder instead of using the original path
+- test install using uv
