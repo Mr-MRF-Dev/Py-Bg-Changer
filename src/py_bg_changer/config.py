@@ -55,7 +55,9 @@ def load() -> dict[str, str]:
     """Return the saved wallpapers as {name: path}. Empty if nothing is saved yet."""
     wallpapers = _read_raw().get("wallpapers", {})
     if not isinstance(wallpapers, dict):
-        raise ConfigError(f"{config_path()}: 'wallpapers' must be an object of name -> path.")
+        raise ConfigError(
+            f"{config_path()}: 'wallpapers' must be an object of name -> path."
+        )
     return {str(name): str(path) for name, path in wallpapers.items()}
 
 
@@ -66,5 +68,7 @@ def save(wallpapers: dict[str, str]) -> None:
     path = config_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    tmp.write_text(
+        json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     tmp.replace(path)

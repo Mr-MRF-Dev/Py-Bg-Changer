@@ -38,6 +38,7 @@ def _run(cmd: list[str], *, check: bool = True) -> subprocess.CompletedProcess:
 
 # --- Windows ---------------------------------------------------------------
 
+
 def _windows(path: Path) -> None:
     import ctypes
 
@@ -53,6 +54,7 @@ def _windows(path: Path) -> None:
 
 # --- macOS -----------------------------------------------------------------
 
+
 def _macos(path: Path) -> None:
     escaped = str(path).replace("\\", "\\\\").replace('"', '\\"')
     script = (
@@ -64,20 +66,35 @@ def _macos(path: Path) -> None:
 
 # --- Linux -----------------------------------------------------------------
 
+
 def _linux(path: Path) -> None:
     desktop = ":".join(
-        filter(None, [os.environ.get("XDG_CURRENT_DESKTOP"), os.environ.get("DESKTOP_SESSION")])
+        filter(
+            None,
+            [os.environ.get("XDG_CURRENT_DESKTOP"), os.environ.get("DESKTOP_SESSION")],
+        )
     ).lower()
     uri = path.as_uri()
 
     if "cinnamon" in desktop:
-        _run(["gsettings", "set", "org.cinnamon.desktop.background", "picture-uri", uri])
+        _run(
+            ["gsettings", "set", "org.cinnamon.desktop.background", "picture-uri", uri]
+        )
     elif "mate" in desktop:
         _run(["gsettings", "set", "org.mate.background", "picture-filename", str(path)])
     elif any(name in desktop for name in ("gnome", "budgie", "unity", "pantheon")):
         _run(["gsettings", "set", "org.gnome.desktop.background", "picture-uri", uri])
         # Newer GNOME has a separate key for dark mode; older versions don't.
-        _run(["gsettings", "set", "org.gnome.desktop.background", "picture-uri-dark", uri], check=False)
+        _run(
+            [
+                "gsettings",
+                "set",
+                "org.gnome.desktop.background",
+                "picture-uri-dark",
+                uri,
+            ],
+            check=False,
+        )
     elif "kde" in desktop or "plasma" in desktop:
         _run(["plasma-apply-wallpaperimage", str(path)])
     elif "xfce" in desktop:

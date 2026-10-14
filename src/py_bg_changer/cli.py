@@ -27,12 +27,18 @@ def build_parser() -> argparse.ArgumentParser:
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {__version__}"
+    )
     sub = parser.add_subparsers(dest="command", metavar="<command>")
 
     p = sub.add_parser("set", help="set the wallpaper (this is the default command)")
-    p.add_argument("target", nargs="?", default="default",
-                   help="a saved name or a path to an image (default: 'default')")
+    p.add_argument(
+        "target",
+        nargs="?",
+        default="default",
+        help="a saved name or a path to an image (default: 'default')",
+    )
 
     sub.add_parser("list", help="show saved wallpapers")
 
