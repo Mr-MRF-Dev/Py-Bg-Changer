@@ -1,8 +1,8 @@
-"""Reading and writing the list of saved wallpapers.
+"""Reading and writing the saved wallpapers and the chosen default.
 
-The file format is the same as the original bg.py:
+The file format is the same as the original bg.py, plus an optional default:
 
-    {"wallpapers": {"name": "/path/to/image.jpg"}}
+    {"wallpapers": {"name": "/path/to/image.jpg"}, "default": "name"}
 """
 
 from __future__ import annotations
@@ -51,6 +51,16 @@ def _read_raw() -> dict:
     return data
 
 
+def _write(data: dict) -> None:
+    path = config_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(
+        json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+    tmp.replace(path)
+
+
 def load() -> dict[str, str]:
     """Return the saved wallpapers as {name: path}. Empty if nothing is saved yet."""
     wallpapers = _read_raw().get("wallpapers", {})
@@ -65,10 +75,20 @@ def save(wallpapers: dict[str, str]) -> None:
     """Write the wallpapers back, keeping any other keys already in the file."""
     data = _read_raw()
     data["wallpapers"] = wallpapers
-    path = config_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(
-        json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
-    tmp.replace(path)
+    _write(data)
+
+
+def get_default() -> str | None:
+    """Name of the wallpaper that a plain `pbc` sets, if one was chosen."""
+    value = _read_raw().get("default")
+    return value if isinstance(value, str) and value else None
+
+
+def set_default(name: str | None) -> None:
+    """Choose the default wallpaper, or pass None to clear the choice."""
+    data = _read_raw()
+    if name is None:
+        data.pop("default", None)
+    else:
+        data["default"] = name
+    _write(data)
