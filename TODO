@@ -3,3 +3,8 @@
 [x] set the default wallpaper to a specific image (use it only call `pbc` with no arguments)
 [x] copy images into a cache folder instead of using the original path
 [ ] test install using uv
+[ ] if config is invalid?
+[ ] add a feature to change the wallpaper at regular intervals
+[ ] implement a user interface for selecting wallpapers
+[ ] add support for multiple monitors
+[ ] add without console select (no terminal - like using in RUN)
