@@ -27,12 +27,26 @@ Prefer pip? `pipx install py-bg-changer` or `pip install py-bg-changer` work too
 pbc add night ~/Pictures/night.jpg   # save an image under a name
 pbc night                            # set it by name
 pbc ~/Pictures/any.png               # or set any image directly
-pbc list                             # see what you saved
+pbc list                             # see what you saved (* marks the default)
+pbc default night                    # choose what a plain "pbc" sets
 pbc remove night                     # forget a name
-pbc                                  # set the one named "default"
+pbc                                  # set the default wallpaper
 ```
 
-If a saved name clashes with a command (say, one called `list`), use `pbc set list`.
+If a saved name clashes with a command (say, one called `list` or `default`), use `pbc set list`.
+
+### Default wallpaper
+
+Run `pbc` with no arguments and it sets your default wallpaper. Pick the default with
+`pbc default NAME`, or do it while saving an image with `pbc add NAME IMAGE --default`.
+`pbc default` on its own shows the current choice.
+
+### Your images are copied
+
+When you save an image, `py-bg-changer` keeps its own copy next to the config file and
+gives that copy to the system. If you later move or delete the original, the wallpaper
+still works. The copy is removed when you remove the name (or replace its image), and
+your original file is never touched.
 
 ## Supported desktops
 
@@ -44,11 +58,16 @@ If a saved name clashes with a command (say, one called `list`), use `pbc set li
 
 ## Config
 
-Saved names live in a small JSON file. Run `pbc path` to see where. Set `PBC_CONFIG`
-to use a different file.
+Saved names live in a small JSON file, and the copied images in a `wallpapers` folder
+next to it. Run `pbc path` to see where. Set `PBC_CONFIG` to use a different file.
 
 ```json
-{ "wallpapers": { "default": "/home/me/Pictures/a.jpg" } }
+{
+  "wallpapers": {
+    "night": "/home/me/.config/py-bg-changer/wallpapers/3e23e8160039594a.png"
+  },
+  "default": "night"
+}
 ```
 
 ## Development
