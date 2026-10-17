@@ -41,7 +41,7 @@ Running `pbc` from Win+R opens a terminal that closes right away. Use `pbcw` (or
 `py-bg-changer-w`) instead: it takes the same arguments, opens no window, and shows a
 small message box only if something goes wrong.
 
-```
+```txt
 pbcw night                           # from Win+R: set it silently
 ```
 
@@ -76,7 +76,9 @@ next to it. Run `pbc path` to see where. Set `PBC_CONFIG` to use a different fil
 
 ```json
 {
-  "wallpapers": { "night": "/home/me/.config/py-bg-changer/wallpapers/3e23e8160039594a.png" },
+  "wallpapers": {
+    "night": "/home/me/.config/py-bg-changer/wallpapers/3e23e8160039594a.png"
+  },
   "default": "night"
 }
 ```
