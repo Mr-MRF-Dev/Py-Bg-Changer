@@ -23,7 +23,7 @@ py-bg-changer-w = "py_bg_changer.gui:main"
 pbcw = "py_bg_changer.gui:main"
 
 [dependency-groups]
-dev = ["pytest>=9"]
+dev = ["pytest>=9.0.3"]
 
 [build-system]
 requires = ["uv_build>=0.13"]
