@@ -27,15 +27,16 @@ Prefer pip? `pipx install py-bg-changer` or `pip install py-bg-changer` work too
 pbc add night ~/Pictures/night.jpg   # save an image under a name
 pbc add night img.jpg -a n -a dark   # ...and give it extra names (aliases)
 pbc alias night moon                 # add more aliases later
+pbc rename night midnight            # rename a wallpaper or an alias
 pbc night                            # set it by name (or any alias: pbc n)
 pbc ~/Pictures/any.png               # or set any image directly
-pbc list                             # see what you saved (* marks the default)
+pbc list                             # see what you saved (* marks the default); `pbc ls` works too
 pbc default night                    # choose what a plain "pbc" sets
 pbc remove night                     # forget a name (or just an alias)
 pbc                                  # set the default wallpaper
 ```
 
-If a saved name clashes with a command (say, one called `list`, `default` or `alias`), use `pbc set list`.
+If a saved name clashes with a command (say, one called `list`, `ls` or `default`), use `pbc set list`.
 
 ### Win+R and launchers (no console window)
 
@@ -59,6 +60,9 @@ them in brackets after the name.
 
 Removing an alias leaves the wallpaper alone; removing a wallpaper also removes its
 aliases. If you replace the image saved under a name, its aliases follow the new image.
+
+Rename either one with `pbc rename OLD NEW`. Renaming a wallpaper keeps its aliases, its
+image and its place as the default.
 
 ### Default wallpaper
 
@@ -101,7 +105,7 @@ next to it. Run `pbc path` to see where. Set `PBC_CONFIG` to use a different fil
 The project is managed with [uv](https://docs.astral.sh/uv/).
 
 ```bash
-uv sync              # create the virtual-env and install everything
+uv sync              # create the virtualenv and install everything
 uv run pytest        # run the tests
 uv run pbc --help    # run the CLI from source
 ```

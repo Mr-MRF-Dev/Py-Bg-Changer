@@ -10,7 +10,18 @@ from pathlib import Path
 from . import __version__, cache, config
 from .wallpaper import WallpaperError, set_wallpaper
 
-COMMANDS = {"set", "list", "add", "alias", "remove", "rm", "default", "path"}
+COMMANDS = {
+    "set",
+    "list",
+    "ls",
+    "add",
+    "alias",
+    "rename",
+    "remove",
+    "rm",
+    "default",
+    "path",
+}
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -23,6 +34,7 @@ def build_parser() -> argparse.ArgumentParser:
             "  pbc add night ~/Pictures/night.jpg   save an image under a name\n"
             "  pbc add night img.jpg -a n -a dark   ...with extra names (aliases)\n"
             "  pbc alias night moon                 add more aliases later\n"
+            "  pbc rename night midnight            rename a wallpaper or an alias\n"
             "  pbc night                            set it by name or alias\n"
             "  pbc ~/Pictures/any.png               set any image directly\n"
             "  pbc default night                    choose what a plain 'pbc' sets\n"
@@ -42,7 +54,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="a saved name, an alias or a path to an image (omit it to use the default)",
     )
 
-    sub.add_parser("list", help="show saved wallpapers (* marks the default)")
+    sub.add_parser(
+        "list", aliases=["ls"], help="show saved wallpapers (* marks the default)"
+    )
 
     p = sub.add_parser("add", help="save an image under a name")
     p.add_argument("name")
@@ -66,6 +80,10 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("alias", help="give a saved wallpaper extra names")
     p.add_argument("name", help="a saved name (or one of its aliases)")
     p.add_argument("aliases", nargs="+", metavar="ALIAS")
+
+    p = sub.add_parser("rename", help="rename a saved wallpaper or an alias")
+    p.add_argument("old", help="a saved name or an alias")
+    p.add_argument("new")
 
     p = sub.add_parser("default", help="choose the wallpaper that a plain 'pbc' sets")
     p.add_argument(
@@ -267,6 +285,42 @@ def cmd_alias(name: str, new_aliases: list[str]) -> int:
     return 0
 
 
+def cmd_rename(old: str, new: str) -> int:
+    wallpapers = config.load()
+    aliases = config.load_aliases()
+    if old not in wallpapers and old not in aliases:
+        return _unknown(old, wallpapers, aliases)
+    if new == old:
+        print(f"'{old}' is already called that")
+        return 0
+    if new in wallpapers:
+        return _error(f"'{new}' is already a saved wallpaper name.")
+    if new in aliases:
+        return _error(f"'{new}' is already an alias of '{aliases[new]}'.")
+
+    # Rebuild the dicts so the renamed entry keeps its place in the list.
+    if old in wallpapers:
+        wallpapers = {
+            (new if name == old else name): path for name, path in wallpapers.items()
+        }
+        aliases = {
+            alias: (new if target == old else target)
+            for alias, target in aliases.items()
+        }
+        what = f"'{old}'"
+    else:
+        aliases = {
+            (new if alias == old else alias): target
+            for alias, target in aliases.items()
+        }
+        what = f"alias '{old}'"
+    config.save(wallpapers, aliases)
+    if config.get_default() == old:
+        config.set_default(new)
+    print(f"Renamed {what} to '{new}'")
+    return 0
+
+
 def cmd_default(name: str | None) -> int:
     wallpapers = config.load()
     aliases = config.load_aliases()
@@ -326,12 +380,14 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "set":
             return cmd_set(args.target)
-        if args.command == "list":
+        if args.command in ("list", "ls"):
             return cmd_list()
         if args.command == "add":
             return cmd_add(args.name, args.path, args.make_default, args.aliases)
         if args.command == "alias":
             return cmd_alias(args.name, args.aliases)
+        if args.command == "rename":
+            return cmd_rename(args.old, args.new)
         if args.command == "default":
             return cmd_default(args.name)
         if args.command in ("remove", "rm"):
