@@ -10,7 +10,7 @@ from pathlib import Path
 from . import __version__, cache, config
 from .wallpaper import WallpaperError, set_wallpaper
 
-COMMANDS = {"set", "list", "add", "remove", "rm", "default", "path"}
+COMMANDS = {"set", "list", "add", "alias", "remove", "rm", "default", "path"}
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -21,7 +21,9 @@ def build_parser() -> argparse.ArgumentParser:
             "'pbc' is a short alias for 'py-bg-changer'.\n\n"
             "examples:\n"
             "  pbc add night ~/Pictures/night.jpg   save an image under a name\n"
-            "  pbc night                            set it by name\n"
+            "  pbc add night img.jpg -a n -a dark   ...with extra names (aliases)\n"
+            "  pbc alias night moon                 add more aliases later\n"
+            "  pbc night                            set it by name or alias\n"
             "  pbc ~/Pictures/any.png               set any image directly\n"
             "  pbc default night                    choose what a plain 'pbc' sets\n"
             "  pbc                                  set the default wallpaper"
@@ -37,7 +39,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "target",
         nargs="?",
-        help="a saved name or a path to an image (omit it to use the default)",
+        help="a saved name, an alias or a path to an image (omit it to use the default)",
     )
 
     sub.add_parser("list", help="show saved wallpapers (* marks the default)")
@@ -46,6 +48,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("name")
     p.add_argument("path")
     p.add_argument(
+        "-a",
+        "--alias",
+        action="append",
+        dest="aliases",
+        metavar="ALIAS",
+        help="another name for the same image (repeat it for more)",
+    )
+    p.add_argument(
         "-d",
         "--default",
         action="store_true",
@@ -53,10 +63,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="also make it the default wallpaper",
     )
 
-    p = sub.add_parser("default", help="choose the wallpaper that a plain 'pbc' sets")
-    p.add_argument("name", nargs="?", help="a saved name (omit it to show the default)")
+    p = sub.add_parser("alias", help="give a saved wallpaper extra names")
+    p.add_argument("name", help="a saved name (or one of its aliases)")
+    p.add_argument("aliases", nargs="+", metavar="ALIAS")
 
-    p = sub.add_parser("remove", aliases=["rm"], help="forget a saved name")
+    p = sub.add_parser("default", help="choose the wallpaper that a plain 'pbc' sets")
+    p.add_argument(
+        "name", nargs="?", help="a saved name or alias (omit it to show the default)"
+    )
+
+    p = sub.add_parser("remove", aliases=["rm"], help="forget a saved name or alias")
     p.add_argument("name")
 
     sub.add_parser("path", help="print where the config file lives")
@@ -68,22 +84,65 @@ def _error(message: str) -> int:
     return 1
 
 
-def _unknown(target: str, wallpapers: dict[str, str]) -> int:
+def _dedupe(items: list[str]) -> list[str]:
+    return list(dict.fromkeys(items))
+
+
+def _resolve(
+    name: str, wallpapers: dict[str, str], aliases: dict[str, str]
+) -> str | None:
+    """The saved wallpaper a name or alias stands for, or None."""
+    if name in wallpapers:
+        return name
+    target = aliases.get(name)
+    return target if target in wallpapers else None
+
+
+def _aliases_of(name: str, aliases: dict[str, str]) -> list[str]:
+    return [alias for alias, target in aliases.items() if target == name]
+
+
+def _label(name: str, aliases: dict[str, str]) -> str:
+    extra = _aliases_of(name, aliases)
+    return f"{name} ({', '.join(extra)})" if extra else name
+
+
+def _check_aliases(
+    owner: str,
+    requested: list[str],
+    wallpapers: dict[str, str],
+    aliases: dict[str, str],
+) -> str | None:
+    """An error message if one of the aliases can't be used for `owner`."""
+    for alias in requested:
+        if alias == owner:
+            return f"'{alias}' is already the name of this wallpaper."
+        if alias in wallpapers:
+            return f"'{alias}' is already a saved wallpaper name."
+        if alias in aliases and aliases[alias] != owner:
+            return f"'{alias}' is already an alias of '{aliases[alias]}'."
+    return None
+
+
+def _unknown(target: str, wallpapers: dict[str, str], aliases: dict[str, str]) -> int:
     message = f"Unknown wallpaper: '{target}'"
-    close = difflib.get_close_matches(target, wallpapers, n=1)
+    close = difflib.get_close_matches(target, [*wallpapers, *aliases], n=1)
     if close:
         message += f"\nDid you mean '{close[0]}'?"
     if wallpapers:
-        message += f"\nAvailable: {', '.join(wallpapers)}"
+        labels = ", ".join(_label(name, aliases) for name in wallpapers)
+        message += f"\nAvailable: {labels}"
     else:
         message += "\nNothing is saved yet. Save one with:  pbc add NAME IMAGE"
     return _error(message)
 
 
-def _default_name(wallpapers: dict[str, str]) -> str | None:
+def _default_name(wallpapers: dict[str, str], aliases: dict[str, str]) -> str | None:
     chosen = config.get_default()
-    if chosen in wallpapers:
-        return chosen
+    if chosen:
+        resolved = _resolve(chosen, wallpapers, aliases)
+        if resolved:
+            return resolved
     # Configs from the original bg.py use a wallpaper literally named "default".
     if "default" in wallpapers:
         return "default"
@@ -92,33 +151,35 @@ def _default_name(wallpapers: dict[str, str]) -> str | None:
 
 def cmd_set(target: str | None) -> int:
     wallpapers = config.load()
+    aliases = config.load_aliases()
 
     if target is None:
-        target = _default_name(wallpapers)
+        target = _default_name(wallpapers, aliases)
         if target is None:
             if not wallpapers:
                 return _error(
                     "Nothing is saved yet. Save one with:  pbc add NAME IMAGE --default"
                 )
+            labels = ", ".join(_label(name, aliases) for name in wallpapers)
             return _error(
                 "No default wallpaper is set. Choose one with:  pbc default NAME\n"
-                f"Available: {', '.join(wallpapers)}"
+                f"Available: {labels}"
             )
 
-    saved = target in wallpapers
-    if saved:
-        image = Path(wallpapers[target]).expanduser()
-        label = f"'{target}'"
+    saved = _resolve(target, wallpapers, aliases)
+    if saved is not None:
+        image = Path(wallpapers[saved]).expanduser()
+        label = f"'{saved}'"
     elif Path(target).expanduser().is_file():
         image = Path(target).expanduser()
         label = str(image)
     else:
-        return _unknown(target, wallpapers)
+        return _unknown(target, wallpapers, aliases)
 
     if not image.is_file():
         message = f"File not found: {image}"
-        if saved:
-            message += f"\nAdd it again with:  pbc add {target} IMAGE"
+        if saved is not None:
+            message += f"\nAdd it again with:  pbc add {saved} IMAGE"
         return _error(message)
 
     set_wallpaper(image)
@@ -128,68 +189,129 @@ def cmd_set(target: str | None) -> int:
 
 def cmd_list() -> int:
     wallpapers = config.load()
+    aliases = config.load_aliases()
     if not wallpapers:
         print("Nothing saved yet. Save one with:  pbc add NAME IMAGE")
         return 0
-    default = _default_name(wallpapers)
-    width = max(len(name) for name in wallpapers)
+    default = _default_name(wallpapers, aliases)
+    labels = {name: _label(name, aliases) for name in wallpapers}
+    width = max(len(label) for label in labels.values())
     for name, path in wallpapers.items():
         mark = "*" if name == default else " "
         note = "" if Path(path).expanduser().is_file() else "  (missing)"
-        print(f"{mark} {name:<{width}}  {path}{note}")
+        print(f"{mark} {labels[name]:<{width}}  {path}{note}")
     return 0
 
 
-def cmd_add(name: str, path: str, make_default: bool) -> int:
+def cmd_add(
+    name: str, path: str, make_default: bool, alias_names: list[str] | None
+) -> int:
     source = Path(path).expanduser().resolve()
     if not source.is_file():
         return _error(f"File not found: {source}")
+
+    wallpapers = config.load()
+    aliases = config.load_aliases()
+    if name in aliases:
+        return _error(
+            f"'{name}' is already an alias of '{aliases[name]}'.\n"
+            f"Remove the alias first with:  pbc remove {name}"
+        )
+    requested = _dedupe(alias_names or [])
+    problem = _check_aliases(name, requested, wallpapers, aliases)
+    if problem:
+        return _error(problem)
+
     try:
         stored = cache.store(source)
     except OSError as exc:
         return _error(f"Could not copy {source}: {exc}")
 
-    wallpapers = config.load()
     previous = wallpapers.get(name)
     wallpapers[name] = str(stored)
-    config.save(wallpapers)
+    for alias in requested:
+        aliases[alias] = name
+    config.save(wallpapers, aliases)
     if previous is not None:
         cache.release(previous, wallpapers)
 
     print(f"Saved '{name}' -> {stored}")
+    if requested:
+        print(f"Aliases: {', '.join(requested)}")
     if make_default:
         config.set_default(name)
         print(f"'{name}' is now the default wallpaper")
     return 0
 
 
+def cmd_alias(name: str, new_aliases: list[str]) -> int:
+    wallpapers = config.load()
+    aliases = config.load_aliases()
+    real = _resolve(name, wallpapers, aliases)
+    if real is None:
+        return _unknown(name, wallpapers, aliases)
+
+    requested = _dedupe(new_aliases)
+    problem = _check_aliases(real, requested, wallpapers, aliases)
+    if problem:
+        return _error(problem)
+
+    added = [alias for alias in requested if alias not in aliases]
+    if not added:
+        print(f"'{real}' already has those aliases")
+        return 0
+    for alias in added:
+        aliases[alias] = real
+    config.save(wallpapers, aliases)
+    print(f"'{real}' is now also called: {', '.join(added)}")
+    return 0
+
+
 def cmd_default(name: str | None) -> int:
     wallpapers = config.load()
+    aliases = config.load_aliases()
     if name is None:
         current = config.get_default()
-        if current in wallpapers:
-            print(current)
+        resolved = _resolve(current, wallpapers, aliases) if current else None
+        if resolved:
+            print(resolved)
         else:
             print("No default set. Choose one with:  pbc default NAME")
         return 0
-    if name not in wallpapers:
-        return _unknown(name, wallpapers)
-    config.set_default(name)
-    print(f"'{name}' is now the default wallpaper")
+    resolved = _resolve(name, wallpapers, aliases)
+    if resolved is None:
+        return _unknown(name, wallpapers, aliases)
+    config.set_default(resolved)
+    print(f"'{resolved}' is now the default wallpaper")
     return 0
 
 
 def cmd_remove(name: str) -> int:
     wallpapers = config.load()
-    if name not in wallpapers:
-        return _error(f"Unknown wallpaper: '{name}'")
-    removed = wallpapers.pop(name)
-    config.save(wallpapers)
-    if config.get_default() == name:
-        config.set_default(None)
-    cache.release(removed, wallpapers)
-    print(f"Removed '{name}'")
-    return 0
+    aliases = config.load_aliases()
+
+    if name in wallpapers:
+        removed = wallpapers.pop(name)
+        gone = _aliases_of(name, aliases)
+        for alias in gone:
+            del aliases[alias]
+        config.save(wallpapers, aliases)
+        if config.get_default() == name:
+            config.set_default(None)
+        cache.release(removed, wallpapers)
+        message = f"Removed '{name}'"
+        if gone:
+            message += f" (and its aliases: {', '.join(gone)})"
+        print(message)
+        return 0
+
+    if name in aliases:
+        target = aliases.pop(name)
+        config.save(wallpapers, aliases)
+        print(f"Removed alias '{name}' (the wallpaper '{target}' is still saved)")
+        return 0
+
+    return _error(f"Unknown wallpaper: '{name}'")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -207,7 +329,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "list":
             return cmd_list()
         if args.command == "add":
-            return cmd_add(args.name, args.path, args.make_default)
+            return cmd_add(args.name, args.path, args.make_default, args.aliases)
+        if args.command == "alias":
+            return cmd_alias(args.name, args.aliases)
         if args.command == "default":
             return cmd_default(args.name)
         if args.command in ("remove", "rm"):

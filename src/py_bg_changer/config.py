@@ -1,8 +1,13 @@
 """Reading and writing the saved wallpapers and the chosen default.
 
-The file format is the same as the original bg.py, plus an optional default:
+The file format is the same as the original bg.py, plus an optional default and
+optional aliases (extra names for a saved wallpaper):
 
-    {"wallpapers": {"name": "/path/to/image.jpg"}, "default": "name"}
+    {
+      "wallpapers": {"night": "/path/to/image.jpg"},
+      "aliases": {"n": "night", "dark": "night"},
+      "default": "night"
+    }
 """
 
 from __future__ import annotations
@@ -71,10 +76,28 @@ def load() -> dict[str, str]:
     return {str(name): str(path) for name, path in wallpapers.items()}
 
 
-def save(wallpapers: dict[str, str]) -> None:
-    """Write the wallpapers back, keeping any other keys already in the file."""
+def load_aliases() -> dict[str, str]:
+    """Return the aliases as {alias: wallpaper name}. Empty if there are none."""
+    aliases = _read_raw().get("aliases", {})
+    if not isinstance(aliases, dict):
+        raise ConfigError(
+            f"{config_path()}: 'aliases' must be an object of alias -> name."
+        )
+    return {str(alias): str(name) for alias, name in aliases.items()}
+
+
+def save(wallpapers: dict[str, str], aliases: dict[str, str] | None = None) -> None:
+    """Write the wallpapers back, keeping any other keys already in the file.
+
+    The aliases are only touched when they are passed in.
+    """
     data = _read_raw()
     data["wallpapers"] = wallpapers
+    if aliases is not None:
+        if aliases:
+            data["aliases"] = aliases
+        else:
+            data.pop("aliases", None)
     _write(data)
 
 
