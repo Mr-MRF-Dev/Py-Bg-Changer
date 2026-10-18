@@ -25,15 +25,17 @@ Prefer pip? `pipx install py-bg-changer` or `pip install py-bg-changer` work too
 
 ```bash
 pbc add night ~/Pictures/night.jpg   # save an image under a name
-pbc night                            # set it by name
+pbc add night img.jpg -a n -a dark   # ...and give it extra names (aliases)
+pbc alias night moon                 # add more aliases later
+pbc night                            # set it by name (or any alias: pbc n)
 pbc ~/Pictures/any.png               # or set any image directly
 pbc list                             # see what you saved (* marks the default)
 pbc default night                    # choose what a plain "pbc" sets
-pbc remove night                     # forget a name
+pbc remove night                     # forget a name (or just an alias)
 pbc                                  # set the default wallpaper
 ```
 
-If a saved name clashes with a command (say, one called `list` or `default`), use `pbc set list`.
+If a saved name clashes with a command (say, one called `list`, `default` or `alias`), use `pbc set list`.
 
 ### Win+R and launchers (no console window)
 
@@ -41,12 +43,22 @@ Running `pbc` from Win+R opens a terminal that closes right away. Use `pbcw` (or
 `py-bg-changer-w`) instead: it takes the same arguments, opens no window, and shows a
 small message box only if something goes wrong.
 
-```txt
+```bash
 pbcw night                           # from Win+R: set it silently
 ```
 
 It prints nothing on success, so use `pbc` in a terminal for `list`, `default` and
 the like.
+
+### Aliases
+
+A wallpaper can have as many aliases as you like, and every alias works anywhere a name
+does (`pbc n`, `pbc default n`, `pbc alias n moon`). Add them while saving with
+`-a` (repeat it for more) or later with `pbc alias NAME ALIAS...`. `pbc list` shows
+them in brackets after the name.
+
+Removing an alias leaves the wallpaper alone; removing a wallpaper also removes its
+aliases. If you replace the image saved under a name, its aliases follow the new image.
 
 ### Default wallpaper
 
@@ -79,6 +91,7 @@ next to it. Run `pbc path` to see where. Set `PBC_CONFIG` to use a different fil
   "wallpapers": {
     "night": "/home/me/.config/py-bg-changer/wallpapers/3e23e8160039594a.png"
   },
+  "aliases": { "n": "night", "dark": "night" },
   "default": "night"
 }
 ```
@@ -88,7 +101,7 @@ next to it. Run `pbc path` to see where. Set `PBC_CONFIG` to use a different fil
 The project is managed with [uv](https://docs.astral.sh/uv/).
 
 ```bash
-uv sync              # create the virtualenv and install everything
+uv sync              # create the virtual-env and install everything
 uv run pytest        # run the tests
 uv run pbc --help    # run the CLI from source
 ```
