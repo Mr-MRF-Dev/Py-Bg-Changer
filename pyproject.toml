@@ -1,7 +1,7 @@
 [project]
 name = "py-bg-changer"
 version = "0.1.0"
-description = "Change your desktop wallpaper from the terminal, Win+R or a launcher. Windows, macOS and Linux."
+description = "A simple cross-platform wallpaper changer made with Python"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
