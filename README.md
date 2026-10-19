@@ -1,31 +1,41 @@
 # 🖼️ Py Bg Changer
 
-Change your desktop wallpaper from the terminal, Win+R or any launcher.
-Works on Windows, macOS and Linux. No dependencies.
+[![PyPI](https://img.shields.io/pypi/v/py-bg-changer)](https://pypi.org/project/py-bg-changer/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/py-bg-changer)](https://pypi.org/project/py-bg-changer/)
+![GitHub repo size](https://img.shields.io/github/repo-size/Mr-MRF-Dev/Py-Bg-Changer)
+[![Tests](https://github.com/Mr-MRF-Dev/Py-Bg-Changer/actions/workflows/test.yml/badge.svg)](https://github.com/Mr-MRF-Dev/Py-Bg-Changer/actions/workflows/test.yml)
+[![GitHub License](https://img.shields.io/github/license/Mr-MRF-Dev/Py-Bg-Changer)](/LICENSE)
+[![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+
+<!-- ![Screenshot](/images/screenshot.gif) -->
+
+Simple cross-platform wallpaper changer made with Python. Change your desktop wallpaper from the terminal, Win+R or any launcher. Works on Windows, macOS and Linux, with no dependencies.
 
 The command is `py-bg-changer`, and `pbc` is the short alias for it.
 
-## Install
+## 📥 Installation
 
-With [uv](https://docs.astral.sh/uv/) (recommended):
+you can install the latest version from [PyPI](https://pypi.org/project/py-bg-changer/) with [uv](https://docs.astral.sh/uv/) (recommended):
 
 ```bash
 uv tool install py-bg-changer
 ```
 
-Or try it without installing:
+or try it without installing:
 
 ```bash
 uvx --from py-bg-changer pbc --help
 ```
 
-Prefer pip? `pipx install py-bg-changer` or `pip install py-bg-changer` work too. Needs Python 3.9+.
+prefer pip? `pipx install py-bg-changer` or `pip install py-bg-changer` work too. Needs Python 3.10+.
 
-## Use
+## 📖 Usage
 
 ```bash
 pbc add night ~/Pictures/night.jpg   # save an image under a name
 pbc add night img.jpg -a n -a dark   # ...and give it extra names (aliases)
+pbc add night img.jpg --default      # ...or make it the default right away
 pbc alias night moon                 # add more aliases later
 pbc rename night midnight            # rename a wallpaper or an alias
 pbc night                            # set it by name (or any alias: pbc n)
@@ -36,48 +46,77 @@ pbc remove night                     # forget a name (or just an alias)
 pbc                                  # set the default wallpaper
 ```
 
-If a saved name clashes with a command (say, one called `list`, `ls` or `default`), use `pbc set list`.
+> If a saved name clashes with a command (say, one called `list`, `ls` or `default`), use `pbc set list`.
 
-### Win+R and launchers (no console window)
+## 🛠 Getting Started
 
-Running `pbc` from Win+R opens a terminal that closes right away. Use `pbcw` (or
-`py-bg-changer-w`) instead: it takes the same arguments, opens no window, and shows a
-small message box only if something goes wrong.
+follow the instruction to install Py Bg Changer from source (to try the latest code or to work on it):
 
-```bash
-pbcw night                           # from Win+R: set it silently
-```
+1. Clone Code
 
-It prints nothing on success, so use `pbc` in a terminal for `list`, `default` and
-the like.
+   use [Git](https://git-scm.com/) on your system
 
-### Aliases
+   ```bash
+   git clone https://github.com/Mr-MRF-Dev/Py-Bg-Changer.git
+   ```
 
-A wallpaper can have as many aliases as you like, and every alias works anywhere a name
-does (`pbc n`, `pbc default n`, `pbc alias n moon`). Add them while saving with
-`-a` (repeat it for more) or later with `pbc alias NAME ALIAS...`. `pbc list` shows
-them in brackets after the name.
+   or use [GitHub CLI](https://cli.github.com/)
 
-Removing an alias leaves the wallpaper alone; removing a wallpaper also removes its
-aliases. If you replace the image saved under a name, its aliases follow the new image.
+   ```bash
+   gh repo clone Mr-MRF-Dev/Py-Bg-Changer
+   ```
 
-Rename either one with `pbc rename OLD NEW`. Renaming a wallpaper keeps its aliases, its
-image and its place as the default.
+2. Change your directory.
 
-### Default wallpaper
+   ```bash
+   cd Py-Bg-Changer
+   ```
 
-Run `pbc` with no arguments and it sets your default wallpaper. Pick the default with
-`pbc default NAME`, or do it while saving an image with `pbc add NAME IMAGE --default`.
-`pbc default` on its own shows the current choice.
+3. Install it with [uv](https://docs.astral.sh/uv/)
 
-### Your images are copied
+   ```bash
+   uv tool install --editable .
+   ```
 
-When you save an image, `py-bg-changer` keeps its own copy next to the config file and
-gives that copy to the system. If you later move or delete the original, the wallpaper
-still works. The copy is removed when you remove the name (or replace its image), and
-your original file is never touched.
+   `--editable` means any change you make to the code is used right away. Leave it out for a normal install, or use `pip install .` if you prefer pip.
 
-## Supported desktops
+4. Check that it works
+
+   ```bash
+   pbc --version
+   ```
+
+Done :)
+
+> to remove it later: `uv tool uninstall py-bg-changer` (your saved wallpapers and config stay where they are).
+
+## 💡 Tips
+
+- Running `pbc` from Win+R opens a terminal that closes right away. Use `pbcw` (or `py-bg-changer-w`) instead: it takes the same arguments, opens no window, and shows a small message box only if something goes wrong.
+
+  ```bash
+  pbcw night
+  ```
+
+  it prints nothing on success, so use `pbc` in a terminal for `list`, `default` and the like.
+
+- A wallpaper can have as many aliases as you like, and every alias works anywhere a name does (`pbc n`, `pbc default n`, `pbc alias n moon`). Removing an alias leaves the wallpaper alone; removing a wallpaper also removes its aliases. Renaming a wallpaper keeps its aliases, its image and its place as the default.
+
+- When you save an image, `py-bg-changer` keeps its own copy next to the config file and gives that copy to the system. If you later move or delete the original, the wallpaper still works. The copy is removed when you remove the name (or replace its image), and your original file is never touched.
+
+- Saved names live in a small JSON file, and the copied images in a `wallpapers` folder next to it. Run `pbc path` to see where, or set `PBC_CONFIG` to use a different file.
+
+  ```json
+  {
+    "wallpapers": {
+      "night": "/home/me/.config/py-bg-changer/wallpapers/3e23e8160039594a.png"
+    },
+    "aliases": { "n": "night", "dark": "night" },
+    "default": "night"
+  }
+  ```
+
+## 🖥️ Supported Desktops
 
 | OS      | Notes                                                                                                                                                        |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -85,24 +124,9 @@ your original file is never touched.
 | macOS   | Built in (uses `osascript`)                                                                                                                                  |
 | Linux   | GNOME, Budgie, Cinnamon, MATE, KDE Plasma, XFCE and Sway work out of the box. Anything else (i3, bspwm, ...) falls back to `feh` or `nitrogen` if installed. |
 
-## Config
+## 👨‍💻 Development
 
-Saved names live in a small JSON file, and the copied images in a `wallpapers` folder
-next to it. Run `pbc path` to see where. Set `PBC_CONFIG` to use a different file.
-
-```json
-{
-  "wallpapers": {
-    "night": "/home/me/.config/py-bg-changer/wallpapers/3e23e8160039594a.png"
-  },
-  "aliases": { "n": "night", "dark": "night" },
-  "default": "night"
-}
-```
-
-## Development
-
-The project is managed with [uv](https://docs.astral.sh/uv/).
+the project is managed with [uv](https://docs.astral.sh/uv/):
 
 ```bash
 uv sync              # create the virtualenv and install everything
@@ -110,15 +134,10 @@ uv run pytest        # run the tests
 uv run pbc --help    # run the CLI from source
 ```
 
-### Releasing
+## 🤝 Contributing
 
-```bash
-uv build             # builds the sdist and wheel into dist/
-uv publish           # uploads them to PyPI
-```
+we welcome any contributions you may have. If you're interested in helping out, fork the repository and create an [Issue](https://github.com/Mr-MRF-Dev/Py-Bg-Changer/issues) and [PR](https://github.com/Mr-MRF-Dev/Py-Bg-Changer/pulls).
 
-Bump `version` in `pyproject.toml` before each release.
+## 📄 License
 
-## License
-
-MIT
+This project is licensed under the MIT License - see the [LICENSE](/LICENSE) file for details.
