@@ -23,7 +23,7 @@ Issues = "https://github.com/Mr-MRF-Dev/Py-Bg-Changer/issues"
 py-bg-changer = "py_bg_changer.cli:main"
 pbc = "py_bg_changer.cli:main"
 
-# Same commands without a console window (use these from Win+R).
+# Same commands without a console window.
 [project.gui-scripts]
 py-bg-changer-w = "py_bg_changer.gui:main"
 pbcw = "py_bg_changer.gui:main"

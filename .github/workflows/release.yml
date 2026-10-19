@@ -1,0 +1,17 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # needed for Trusted Publishing (no token to manage)
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884
+      - run: uv build
+      - run: uv publish --trusted-publishing always
