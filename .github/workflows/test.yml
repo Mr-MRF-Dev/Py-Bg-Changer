@@ -1,9 +1,13 @@
 name: tests
 
-on: [push, pull_request]
+on:
+  pull_request:
+  workflow_call: # lets release.yml run the same tests before publishing
+  workflow_dispatch:
 
 jobs:
   test:
+    name: Run tests 🧪
     strategy:
       fail-fast: false
       matrix:
