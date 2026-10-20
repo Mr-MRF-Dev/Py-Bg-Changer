@@ -8,6 +8,8 @@ on:
 jobs:
   test:
     name: Run tests 🧪
+    permissions:
+      contents: read
     uses: ./.github/workflows/test.yml
 
   publish:
