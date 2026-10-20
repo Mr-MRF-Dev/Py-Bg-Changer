@@ -5,6 +5,9 @@ on:
   workflow_call: # lets release.yml run the same tests before publishing
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Run tests 🧪
