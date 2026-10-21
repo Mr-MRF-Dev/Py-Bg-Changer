@@ -40,13 +40,14 @@ pbc alias night moon                 # add more aliases later
 pbc rename night midnight            # rename a wallpaper or an alias
 pbc night                            # set it by name (or any alias: pbc n)
 pbc ~/Pictures/any.png               # or set any image directly
+pbc random                           # set a random saved wallpaper
 pbc list                             # see what you saved (* marks the default); `pbc ls` works too
 pbc default night                    # choose what a plain "pbc" sets
 pbc remove night                     # forget a name (or just an alias)
 pbc                                  # set the default wallpaper
 ```
 
-> If a saved name clashes with a command (say, one called `list`, `ls` or `default`), use `pbc set list`.
+> If a saved name clashes with a command (say, one called `list`, `ls`, `default` or `random`), use `pbc set list`.
 
 ## 🛠 Getting Started
 
@@ -99,6 +100,8 @@ Done :)
   ```
 
   it prints nothing on success, so use `pbc` in a terminal for `list`, `default` and the like.
+
+- `pbc random` sets one of your saved wallpapers at random. It skips images whose file is missing, and (when you have more than one) it never picks the image that is set right now, so you always get a change. To know that, the last image set is remembered in the config file under `current`. It works from Win+R too: `pbcw random`.
 
 - A wallpaper can have as many aliases as you like, and every alias works anywhere a name does (`pbc n`, `pbc default n`, `pbc alias n moon`). Removing an alias leaves the wallpaper alone; removing a wallpaper also removes its aliases. Renaming a wallpaper keeps its aliases, its image and its place as the default.
 
