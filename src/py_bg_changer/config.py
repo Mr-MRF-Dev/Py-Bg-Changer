@@ -107,6 +107,19 @@ def get_default() -> str | None:
     return value if isinstance(value, str) and value else None
 
 
+def get_current() -> str | None:
+    """Path of the image this program set last, if it is known."""
+    value = _read_raw().get("current")
+    return value if isinstance(value, str) and value else None
+
+
+def set_current(path: str) -> None:
+    """Remember which image was set last, so `pbc random` can pick another one."""
+    data = _read_raw()
+    data["current"] = path
+    _write(data)
+
+
 def set_default(name: str | None) -> None:
     """Choose the default wallpaper, or pass None to clear the choice."""
     data = _read_raw()

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import difflib
+import random
 import sys
 from pathlib import Path
 
@@ -20,6 +21,7 @@ COMMANDS = {
     "remove",
     "rm",
     "default",
+    "random",
     "path",
 }
 
@@ -37,6 +39,7 @@ def build_parser() -> argparse.ArgumentParser:
             "  pbc rename night midnight            rename a wallpaper or an alias\n"
             "  pbc night                            set it by name or alias\n"
             "  pbc ~/Pictures/any.png               set any image directly\n"
+            "  pbc random                           set a random saved wallpaper\n"
             "  pbc default night                    choose what a plain 'pbc' sets\n"
             "  pbc                                  set the default wallpaper"
         ),
@@ -57,6 +60,8 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser(
         "list", aliases=["ls"], help="show saved wallpapers (* marks the default)"
     )
+
+    sub.add_parser("random", help="set a random saved wallpaper")
 
     p = sub.add_parser("add", help="save an image under a name")
     p.add_argument("name")
@@ -167,6 +172,18 @@ def _default_name(wallpapers: dict[str, str], aliases: dict[str, str]) -> str | 
     return None
 
 
+def _resolved(path: str | Path) -> Path:
+    return Path(path).expanduser().resolve()
+
+
+def _remember(image: Path) -> None:
+    """Note which image was set last, so `pbc random` can pick a different one."""
+    try:
+        config.set_current(str(_resolved(image)))
+    except (OSError, config.ConfigError):
+        pass  # only a convenience, never worth failing for
+
+
 def cmd_set(target: str | None) -> int:
     wallpapers = config.load()
     aliases = config.load_aliases()
@@ -201,8 +218,34 @@ def cmd_set(target: str | None) -> int:
         return _error(message)
 
     set_wallpaper(image)
+    _remember(image)
     print(f"Wallpaper set to {label}")
     return 0
+
+
+def cmd_random() -> int:
+    wallpapers = config.load()
+    if not wallpapers:
+        return _error("Nothing is saved yet. Save one with:  pbc add NAME IMAGE")
+
+    # One entry per image (two names can share one file); missing files are skipped.
+    usable: dict[Path, str] = {}
+    for name, path in wallpapers.items():
+        image = _resolved(path)
+        if image.is_file():
+            usable.setdefault(image, name)
+    if not usable:
+        return _error(
+            "None of the saved images exist any more. "
+            "Add them again with:  pbc add NAME IMAGE"
+        )
+
+    # Avoid repeating the wallpaper that is set right now (if there is a choice).
+    current = config.get_current()
+    others = [
+        image for image in usable if current is None or image != _resolved(current)
+    ]
+    return cmd_set(usable[random.choice(others or list(usable))])
 
 
 def cmd_list() -> int:
@@ -384,6 +427,8 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_list()
         if args.command == "add":
             return cmd_add(args.name, args.path, args.make_default, args.aliases)
+        if args.command == "random":
+            return cmd_random()
         if args.command == "alias":
             return cmd_alias(args.name, args.aliases)
         if args.command == "rename":
