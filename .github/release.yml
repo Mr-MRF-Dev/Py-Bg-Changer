@@ -1,0 +1,36 @@
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+      - github-actions
+    authors:
+      - octocat
+  categories:
+    - title: "Release New Version 🏷️"
+      labels:
+        - release
+    - title: "Exciting New Features 🎉"
+      labels:
+        - feature
+    - title: "Bug Fixes 🐛"
+      labels:
+        - bug
+        - fix
+    - title: "Dependencies 👒"
+      labels:
+        - dependencies
+    - title: "Documentation 📚"
+      labels:
+        - documentation
+    - title: "Tests 🧪"
+      labels:
+        - test
+    - title: "Improvements ⚡"
+      labels:
+        - improve
+    - title: "Style 💫"
+      labels:
+        - styles
+    - title: "Other Changes 🔄"
+      labels:
+        - "*"
