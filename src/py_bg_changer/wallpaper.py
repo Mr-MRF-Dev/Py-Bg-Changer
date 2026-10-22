@@ -108,10 +108,49 @@ def _linux(path: Path) -> None:
 def _xfce(path: Path) -> None:
     props = _run(["xfconf-query", "-c", "xfce4-desktop", "-l"]).stdout.splitlines()
     targets = [p for p in props if p.endswith("/last-image")]
-    if not targets:
-        raise WallpaperError("Could not find the XFCE wallpaper settings.")
     for prop in targets:
         _run(["xfconf-query", "-c", "xfce4-desktop", "-p", prop, "-s", str(path)])
+    if targets:
+        return
+
+    # A fresh XFCE has no wallpaper settings until one is picked in Settings >
+    # Desktop, so create them: one per monitor and workspace, which is how
+    # xfdesktop names them (the monitor is its RandR/connector name, e.g. eDP-1).
+    monitors = _xfce_monitors()
+    workspaces = _xfce_workspace_count()
+    for monitor in monitors:
+        for number in range(workspaces):
+            prop = f"/backdrop/screen0/monitor{monitor}/workspace{number}/last-image"
+            _run(
+                ["xfconf-query", "-c", "xfce4-desktop", "-p", prop]
+                + ["--create", "-t", "string", "-s", str(path)]
+            )
+
+
+def _xfce_monitors() -> list[str]:
+    hint = (
+        "Could not find the XFCE wallpaper settings. Pick a wallpaper once in "
+        "Settings > Desktop to create them, or install 'xrandr' so "
+        "they can be created automatically."
+    )
+    if shutil.which("xrandr") is None:
+        raise WallpaperError(hint)
+    lines = _run(["xrandr", "--listmonitors"]).stdout.splitlines()[1:]
+    # " 0: +*eDP-1 1920/344x1080/194+0+0  eDP-1": the name is the last word
+    monitors = [line.split()[-1] for line in lines if line.strip()]
+    if not monitors:
+        raise WallpaperError(hint)
+    return monitors
+
+
+def _xfce_workspace_count() -> int:
+    result = _run(
+        ["xfconf-query", "-c", "xfwm4", "-p", "/general/workspace_count"], check=False
+    )
+    try:
+        return min(max(int(result.stdout.strip()), 1), 64)
+    except ValueError:
+        return 4  # xfwm4's default when the setting does not exist
 
 
 def _linux_fallback(path: Path) -> None:
