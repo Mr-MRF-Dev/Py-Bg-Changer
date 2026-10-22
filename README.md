@@ -103,6 +103,8 @@ Done :)
 
 - `pbc random` sets one of your saved wallpapers at random. It skips images whose file is missing, and (when you have more than one) it never picks the image that is set right now, so you always get a change. To know that, the last image set is remembered in the config file under `current`. It works from Win+R too: `pbcw random`.
 
+- On Linux with a bare X11 window manager (i3, bspwm, ...) install `feh` (`sudo pacman -S feh` on Arch). feh remembers the last wallpaper in `~/.fehbg`, so add `~/.fehbg &` to your window manager's startup to get it back after a restart.
+
 - A wallpaper can have as many aliases as you like, and every alias works anywhere a name does (`pbc n`, `pbc default n`, `pbc alias n moon`). Removing an alias leaves the wallpaper alone; removing a wallpaper also removes its aliases. Renaming a wallpaper keeps its aliases, its image and its place as the default.
 
 - When you save an image, `py-bg-changer` keeps its own copy next to the config file and gives that copy to the system. If you later move or delete the original, the wallpaper still works. The copy is removed when you remove the name (or replace its image), and your original file is never touched.
@@ -121,11 +123,11 @@ Done :)
 
 ## 🖥️ Supported Desktops
 
-| OS      | Notes                                                                                                                                                        |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Windows | Built in, nothing extra needed                                                                                                                               |
-| macOS   | Built in (uses `osascript`)                                                                                                                                  |
-| Linux   | GNOME, Budgie, Cinnamon, MATE, KDE Plasma, XFCE and Sway work out of the box. Anything else (i3, bspwm, ...) falls back to `feh` or `nitrogen` if installed. |
+| OS      | Notes                                                                                                                                                                                                                 |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Windows | Built in, nothing extra needed                                                                                                                                                                                        |
+| macOS   | Built in (uses `osascript`)                                                                                                                                                                                           |
+| Linux   | GNOME, Budgie, Cinnamon, MATE, KDE Plasma, XFCE and Sway work out of the box. Anything else (i3, bspwm, ...) falls back to `feh` or `nitrogen` if installed (X11 only; other Wayland desktops are not supported yet). |
 
 ## 👨‍💻 Development
 

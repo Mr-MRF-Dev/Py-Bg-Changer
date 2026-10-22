@@ -115,14 +115,29 @@ def _xfce(path: Path) -> None:
 
 
 def _linux_fallback(path: Path) -> None:
-    for cmd in (
-        ["feh", "--bg-fill", str(path)],
-        ["nitrogen", "--set-zoom-fill", "--save", str(path)],
-    ):
-        if shutil.which(cmd[0]):
-            _run(cmd)
-            return
-    raise WallpaperError(
-        "Could not detect your desktop environment. "
-        "Install 'feh' (or 'nitrogen') and try again."
+    session = os.environ.get("XDG_SESSION_TYPE", "").lower()
+
+    # feh and nitrogen only draw on X11. On Wayland they would run without error
+    # and change nothing, so they are not even tried there.
+    if session != "wayland":
+        for cmd in (
+            ["feh", "--bg-fill", str(path)],
+            ["nitrogen", "--set-zoom-fill", "--save", str(path)],
+        ):
+            if shutil.which(cmd[0]):
+                _run(cmd)
+                return
+
+    seen = ", ".join(
+        f"{name}={os.environ.get(name, '')!r}"
+        for name in ("XDG_CURRENT_DESKTOP", "DESKTOP_SESSION", "XDG_SESSION_TYPE")
     )
+    if session == "wayland":
+        hint = (
+            "This Wayland desktop is not supported yet (feh and nitrogen only work on X11).\n"
+            "Please open an issue with the values above: "
+            "https://github.com/Mr-MRF-Dev/Py-Bg-Changer/issues"
+        )
+    else:
+        hint = "Install 'feh' (or 'nitrogen') and try again."
+    raise WallpaperError(f"Could not detect your desktop environment ({seen}).\n{hint}")
