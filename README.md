@@ -10,9 +10,11 @@
 
 <!-- ![Screenshot](/images/screenshot.gif) -->
 
-Simple cross-platform wallpaper changer made with Python. Change your desktop wallpaper from the terminal, Win+R or any launcher. Works on Windows, macOS and Linux, with no dependencies.
+Simple cross-platform wallpaper changer made with Python. Change your desktop wallpaper from the terminal, Win+R or any launcher. Made for Windows, macOS and Linux, with no dependencies (only Windows is tested so far, see Supported Desktops below).
 
 The command is `py-bg-changer`, and `pbc` is the short alias for it.
+
+> This project is written and published **just for fun**. The goal is to try out publishing a Python package, for testing, experience and fun.
 
 ## 📥 Installation
 
@@ -123,11 +125,13 @@ Done :)
 
 ## 🖥️ Supported Desktops
 
-| OS      | Notes                                                                                                                                                                                                                 |
-| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Windows | Built in, nothing extra needed                                                                                                                                                                                        |
-| macOS   | Built in (uses `osascript`)                                                                                                                                                                                           |
-| Linux   | GNOME, Budgie, Cinnamon, MATE, KDE Plasma, XFCE and Sway work out of the box. Anything else (i3, bspwm, ...) falls back to `feh` or `nitrogen` if installed (X11 only; other Wayland desktops are not supported yet). |
+> ⚠️ Only Windows has been tested. The macOS and Linux support is written but **not tested** yet. If you run into a problem, please [open an issue](https://github.com/Mr-MRF-Dev/Py-Bg-Changer/issues).
+
+| OS      | Status        | Notes                                                                                                                                                                                                                 |
+| ------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Windows | ✅ Tested     | Built in, nothing extra needed                                                                                                                                                                                        |
+| macOS   | ⚠️ Not tested | Built in (uses `osascript`)                                                                                                                                                                                           |
+| Linux   | ⚠️ Not tested | GNOME, Budgie, Cinnamon, MATE, KDE Plasma, XFCE and Sway work out of the box. Anything else (i3, bspwm, ...) falls back to `feh` or `nitrogen` if installed (X11 only; other Wayland desktops are not supported yet). |
 
 ## 👨‍💻 Development
 
