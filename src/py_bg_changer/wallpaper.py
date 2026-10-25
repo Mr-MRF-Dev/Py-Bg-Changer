@@ -7,6 +7,7 @@ import platform
 import shutil
 import subprocess
 from pathlib import Path
+from typing import NamedTuple
 
 
 class WallpaperError(Exception):
@@ -67,22 +68,43 @@ def _macos(path: Path) -> None:
 # --- Linux -----------------------------------------------------------------
 
 
-def _linux(path: Path) -> None:
-    desktop = ":".join(
+def linux_desktop() -> str:
+    """The desktop environment as one lowercase string, e.g. "ubuntu:gnome"."""
+    return ":".join(
         filter(
             None,
             [os.environ.get("XDG_CURRENT_DESKTOP"), os.environ.get("DESKTOP_SESSION")],
         )
     ).lower()
+
+
+def _linux_backend(desktop: str) -> str:
+    if "cinnamon" in desktop:
+        return "cinnamon"
+    if "mate" in desktop:
+        return "mate"
+    if any(name in desktop for name in ("gnome", "budgie", "unity", "pantheon")):
+        return "gnome"
+    if "kde" in desktop or "plasma" in desktop:
+        return "kde"
+    if "xfce" in desktop:
+        return "xfce"
+    if "sway" in desktop:
+        return "sway"
+    return "fallback"
+
+
+def _linux(path: Path) -> None:
+    backend = _linux_backend(linux_desktop())
     uri = path.as_uri()
 
-    if "cinnamon" in desktop:
+    if backend == "cinnamon":
         _run(
             ["gsettings", "set", "org.cinnamon.desktop.background", "picture-uri", uri]
         )
-    elif "mate" in desktop:
+    elif backend == "mate":
         _run(["gsettings", "set", "org.mate.background", "picture-filename", str(path)])
-    elif any(name in desktop for name in ("gnome", "budgie", "unity", "pantheon")):
+    elif backend == "gnome":
         _run(["gsettings", "set", "org.gnome.desktop.background", "picture-uri", uri])
         # Newer GNOME has a separate key for dark mode; older versions don't.
         _run(
@@ -95,14 +117,66 @@ def _linux(path: Path) -> None:
             ],
             check=False,
         )
-    elif "kde" in desktop or "plasma" in desktop:
+    elif backend == "kde":
         _run(["plasma-apply-wallpaperimage", str(path)])
-    elif "xfce" in desktop:
+    elif backend == "xfce":
         _xfce(path)
-    elif "sway" in desktop:
+    elif backend == "sway":
         _run(["swaymsg", "output", "*", "bg", str(path), "fill"])
     else:
         _linux_fallback(path)
+
+
+class Backend(NamedTuple):
+    """What `set_wallpaper` would use on this machine (shown by `pbc doctor`)."""
+
+    name: str
+    tools: tuple[str, ...] = ()  # commands it needs
+    any_of: bool = False  # True when one of the tools is enough
+    optional: tuple[str, ...] = ()  # commands that are only sometimes needed
+    note: str = ""
+    supported: bool = True
+
+
+_LINUX_TOOLS = {
+    "cinnamon": ("gsettings",),
+    "mate": ("gsettings",),
+    "gnome": ("gsettings",),
+    "kde": ("plasma-apply-wallpaperimage",),
+    "xfce": ("xfconf-query",),
+    "sway": ("swaymsg",),
+}
+
+
+def backend_info() -> Backend:
+    system = platform.system()
+    if system == "Windows":
+        return Backend("windows (SystemParametersInfoW)")
+    if system == "Darwin":
+        return Backend("macos (osascript)", ("osascript",))
+    if system != "Linux":
+        return Backend(
+            "none", supported=False, note=f"unsupported operating system: {system}"
+        )
+
+    backend = _linux_backend(linux_desktop())
+    if backend == "fallback":
+        if os.environ.get("XDG_SESSION_TYPE", "").lower() == "wayland":
+            return Backend(
+                "none",
+                supported=False,
+                note="this Wayland desktop is not supported yet "
+                "(feh and nitrogen only work on X11)",
+            )
+        return Backend("fallback (feh or nitrogen)", ("feh", "nitrogen"), any_of=True)
+    if backend == "xfce":
+        return Backend(
+            "xfce",
+            _LINUX_TOOLS[backend],
+            optional=("xrandr",),
+            note="xrandr is only needed on a fresh XFCE with no wallpaper settings yet",
+        )
+    return Backend(backend, _LINUX_TOOLS[backend])
 
 
 def _xfce(path: Path) -> None:
