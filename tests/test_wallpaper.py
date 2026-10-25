@@ -146,3 +146,126 @@ def test_fresh_xfce_without_xrandr_explains_what_to_do(monkeypatch, tmp_path, xf
         wallpaper._xfce(tmp_path / "a.png")
     assert "Settings > Desktop" in str(error.value)
     assert sets(xfce) == []
+
+
+# --- picking the backend -----------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "desktop, backend",
+    [
+        ("gnome", "gnome"),
+        ("ubuntu:gnome", "gnome"),
+        ("budgie:gnome", "gnome"),
+        ("pantheon", "gnome"),
+        ("x-cinnamon", "cinnamon"),
+        ("mate", "mate"),
+        ("kde", "kde"),
+        ("plasma", "kde"),
+        ("xfce", "xfce"),
+        ("sway", "sway"),
+        ("i3", "fallback"),
+        ("hyprland", "fallback"),
+        ("", "fallback"),
+    ],
+)
+def test_linux_backend_is_chosen_from_the_desktop_name(desktop, backend):
+    assert wallpaper._linux_backend(desktop) == backend
+
+
+@pytest.mark.parametrize(
+    "desktop, expected",
+    [
+        (
+            "GNOME",
+            [
+                [
+                    "gsettings",
+                    "set",
+                    "org.gnome.desktop.background",
+                    "picture-uri",
+                    "URI",
+                ],
+                [
+                    "gsettings",
+                    "set",
+                    "org.gnome.desktop.background",
+                    "picture-uri-dark",
+                    "URI",
+                ],
+            ],
+        ),
+        (
+            "X-Cinnamon",
+            [
+                [
+                    "gsettings",
+                    "set",
+                    "org.cinnamon.desktop.background",
+                    "picture-uri",
+                    "URI",
+                ]
+            ],
+        ),
+        (
+            "MATE",
+            [["gsettings", "set", "org.mate.background", "picture-filename", "PATH"]],
+        ),
+        ("KDE", [["plasma-apply-wallpaperimage", "PATH"]]),
+        ("sway", [["swaymsg", "output", "*", "bg", "PATH", "fill"]]),
+    ],
+)
+def test_each_desktop_gets_its_own_command(
+    monkeypatch, tmp_path, ran, desktop, expected
+):
+    monkeypatch.setenv("XDG_CURRENT_DESKTOP", desktop)
+    image = tmp_path / "a.png"
+    wallpaper._linux(image)
+    assert ran == [
+        [
+            part.replace("URI", image.as_uri()).replace("PATH", str(image))
+            for part in cmd
+        ]
+        for cmd in expected
+    ]
+
+
+def system(monkeypatch, name):
+    monkeypatch.setattr(wallpaper.platform, "system", lambda: name)
+
+
+def test_backend_info_for_windows_and_macos(monkeypatch):
+    system(monkeypatch, "Windows")
+    assert wallpaper.backend_info().tools == ()
+    system(monkeypatch, "Darwin")
+    assert wallpaper.backend_info().tools == ("osascript",)
+
+
+def test_backend_info_for_a_known_linux_desktop(monkeypatch):
+    system(monkeypatch, "Linux")
+    monkeypatch.setenv("XDG_CURRENT_DESKTOP", "KDE")
+    info = wallpaper.backend_info()
+    assert info.name == "kde"
+    assert info.tools == ("plasma-apply-wallpaperimage",)
+
+
+def test_backend_info_for_an_unknown_x11_desktop_needs_one_of_two_tools(monkeypatch):
+    system(monkeypatch, "Linux")
+    monkeypatch.setenv("XDG_SESSION_TYPE", "x11")
+    info = wallpaper.backend_info()
+    assert info.tools == ("feh", "nitrogen")
+    assert info.any_of
+
+
+def test_backend_info_for_an_unknown_wayland_desktop_is_unsupported(monkeypatch):
+    system(monkeypatch, "Linux")
+    monkeypatch.setenv("XDG_SESSION_TYPE", "wayland")
+    monkeypatch.setenv("XDG_CURRENT_DESKTOP", "Hyprland")
+    info = wallpaper.backend_info()
+    assert not info.supported
+    assert "Wayland" in info.note
+
+
+def test_backend_info_for_another_operating_system(monkeypatch):
+    system(monkeypatch, "FreeBSD")
+    assert not wallpaper.backend_info().supported

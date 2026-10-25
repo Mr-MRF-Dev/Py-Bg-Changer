@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -460,6 +461,114 @@ def test_setting_a_wallpaper_remembers_the_current_image(image, applied):
     assert config.get_current() is None
     cli.main(["night"])
     assert Path(config.get_current()) == stored("night").resolve()
+
+
+# --- current and back ---------------------------------------------------------
+
+
+def test_current_when_nothing_was_set(capsys):
+    assert cli.main(["current"]) == 0
+    assert "Nothing has been set" in capsys.readouterr().out
+
+
+def test_current_shows_the_name_and_aliases(image, applied, capsys):
+    cli.main(["add", "night", str(image), "-a", "n"])
+    cli.main(["night"])
+    capsys.readouterr()
+    assert cli.main(["current"]) == 0
+    out = capsys.readouterr().out
+    assert "night (n)" in out
+    assert str(stored("night").resolve()) in out
+
+
+def test_current_shows_the_path_of_an_image_that_was_not_saved(image, applied, capsys):
+    cli.main([str(image)])
+    capsys.readouterr()
+    assert cli.main(["current"]) == 0
+    assert capsys.readouterr().out.strip() == str(image.resolve())
+
+
+def test_current_marks_a_missing_file(image, applied, capsys):
+    cli.main([str(image)])
+    image.unlink()
+    capsys.readouterr()
+    cli.main(["current"])
+    assert "(missing)" in capsys.readouterr().out
+
+
+def test_back_without_any_history_fails(applied, capsys):
+    assert cli.main(["back"]) == 1
+    assert applied == []
+    assert "no previous wallpaper" in capsys.readouterr().err
+
+
+def test_back_after_a_single_wallpaper_fails(tmp_path, applied):
+    add_images(tmp_path, "a")
+    cli.main(["a"])
+    assert cli.main(["back"]) == 1
+
+
+def test_back_walks_through_the_previous_wallpapers(tmp_path, applied):
+    add_images(tmp_path, "a", "b", "c")
+    for name in ("a", "b", "c"):
+        cli.main([name])
+    assert cli.main(["back"]) == 0
+    assert applied[-1] == stored("b")
+    assert cli.main(["back"]) == 0
+    assert applied[-1] == stored("a")
+    assert cli.main(["back"]) == 1
+
+
+def test_back_does_not_add_itself_to_the_history(tmp_path, applied):
+    add_images(tmp_path, "a", "b")
+    cli.main(["a"])
+    cli.main(["b"])
+    assert cli.main(["back"]) == 0
+    assert cli.main(["back"]) == 1  # a toggle between a and b would succeed here
+
+
+def test_back_skips_images_that_are_missing(tmp_path, applied):
+    add_images(tmp_path, "a", "b", "c")
+    for name in ("a", "b", "c"):
+        cli.main([name])
+    stored("b").unlink()
+    assert cli.main(["back"]) == 0
+    assert applied[-1] == stored("a")
+
+
+def test_back_updates_the_current_image(tmp_path, applied):
+    add_images(tmp_path, "a", "b")
+    cli.main(["a"])
+    cli.main(["b"])
+    cli.main(["back"])
+    assert Path(config.get_current()) == stored("a").resolve()
+
+
+def test_back_prints_the_name(tmp_path, applied, capsys):
+    add_images(tmp_path, "a", "b")
+    cli.main(["a"])
+    cli.main(["b"])
+    capsys.readouterr()
+    cli.main(["back"])
+    assert "set back to a" in capsys.readouterr().out
+
+
+def test_history_is_kept_short(tmp_path, applied):
+    add_images(tmp_path, "a", "b")
+    for i in range(config.HISTORY_LIMIT + 10):
+        cli.main(["a" if i % 2 == 0 else "b"])
+    assert len(config.get_history()) == config.HISTORY_LIMIT
+
+
+def test_history_starts_from_the_current_image_of_an_older_version(tmp_path, applied):
+    add_images(tmp_path, "a", "b")
+    path = config.config_path()
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["current"] = str(stored("a").resolve())  # no "history" key yet
+    path.write_text(json.dumps(data), encoding="utf-8")
+    cli.main(["b"])
+    assert cli.main(["back"]) == 0
+    assert applied[-1] == stored("a")
 
 
 # --- config file -------------------------------------------------------------
