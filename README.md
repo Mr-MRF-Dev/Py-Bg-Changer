@@ -14,6 +14,7 @@ Simple cross-platform wallpaper changer made with Python. Change your desktop wa
 
 The command is `py-bg-changer`, and `pbc` is the short alias for it.
 
+> [!NOTE]
 > This project is written and published **just for fun**. The goal is to try out publishing a Python package, for testing, experience and fun.
 
 ## 📥 Installation
@@ -110,7 +111,7 @@ Done :)
 
 - On Linux with a bare X11 window manager (i3, bspwm, ...) install `feh` (`sudo pacman -S feh` on Arch). feh remembers the last wallpaper in `~/.fehbg`, so add `~/.fehbg &` to your window manager's startup to get it back after a restart.
 
-- `pbc current` and `pbc back` only know about images that py-bg-changer set itself. The last 20 are remembered in the config file under `history`. `pbc back` steps back through them (skipping images whose file is gone), and it works from Win+R too: `pbcw back`.
+- `pbc current` and `pbc back` only know about images that py-bg-changer set itself. The 5 previous images are kept in the config file under `history`, like a stack (the image that is set now is stored under `current`, not in `history`). `pbc back` takes the newest one (skipping images whose file is gone), and it works from Win+R too: `pbcw back`.
 
 - If a wallpaper does not change, run `pbc doctor`. It shows your OS, desktop and session type, the config and image folder, and whether the tools that your desktop needs are installed. Please include its output when you open an issue.
 

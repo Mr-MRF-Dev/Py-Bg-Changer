@@ -281,20 +281,20 @@ def cmd_current() -> int:
 
 
 def cmd_back() -> int:
-    # Drop the image that is set now, then look for the newest one that still exists.
-    previous = config.get_history()[:-1]
-    while previous and not Path(previous[-1]).is_file():
-        previous.pop()
-    if not previous:
+    # Take the newest previous image that still exists.
+    history = config.get_history()
+    while history and not Path(history[-1]).is_file():
+        history.pop()
+    if not history:
         return _error("There is no previous wallpaper to go back to.")
 
-    image = Path(previous[-1])
+    image = _resolved(history.pop())
     set_wallpaper(image)
     try:
-        config.step_back(previous)
+        config.step_back(str(image), history)
     except (OSError, config.ConfigError):
         pass  # the wallpaper is already set, so this is not worth failing for
-    names = _names_of(_resolved(image), config.load(), config.load_aliases())
+    names = _names_of(image, config.load(), config.load_aliases())
     print(f"Wallpaper set back to {names[0] if names else image}")
     return 0
 

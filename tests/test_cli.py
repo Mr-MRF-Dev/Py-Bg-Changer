@@ -553,11 +553,41 @@ def test_back_prints_the_name(tmp_path, applied, capsys):
     assert "set back to a" in capsys.readouterr().out
 
 
-def test_history_is_kept_short(tmp_path, applied):
+def test_history_keeps_only_the_five_previous_images(tmp_path, applied):
+    names = "abcdefgh"
+    add_images(tmp_path, *names)
+    for name in names:
+        cli.main([name])
+    assert config.HISTORY_LIMIT == 5
+    assert [Path(p) for p in config.get_history()] == [
+        stored(name).resolve() for name in "cdefg"
+    ]
+
+
+def test_history_does_not_contain_the_image_that_is_set_now(tmp_path, applied):
     add_images(tmp_path, "a", "b")
-    for i in range(config.HISTORY_LIMIT + 10):
-        cli.main(["a" if i % 2 == 0 else "b"])
-    assert len(config.get_history()) == config.HISTORY_LIMIT
+    cli.main(["a"])
+    assert config.get_history() == []
+    cli.main(["b"])
+    assert [Path(p) for p in config.get_history()] == [stored("a").resolve()]
+    assert Path(config.get_current()) == stored("b").resolve()
+
+
+def test_history_is_empty_again_after_going_all_the_way_back(tmp_path, applied):
+    add_images(tmp_path, "a", "b", "c")
+    for name in ("a", "b", "c"):
+        cli.main([name])
+    cli.main(["back"])
+    cli.main(["back"])
+    assert config.get_history() == []
+    assert Path(config.get_current()) == stored("a").resolve()
+
+
+def test_setting_the_same_image_again_does_not_grow_the_history(tmp_path, applied):
+    add_images(tmp_path, "a")
+    for _ in range(3):
+        cli.main(["a"])
+    assert config.get_history() == []
 
 
 def test_history_starts_from_the_current_image_of_an_older_version(tmp_path, applied):
@@ -569,6 +599,20 @@ def test_history_starts_from_the_current_image_of_an_older_version(tmp_path, app
     cli.main(["b"])
     assert cli.main(["back"]) == 0
     assert applied[-1] == stored("a")
+
+
+def test_an_older_history_that_ended_with_the_current_image_still_works(
+    tmp_path, applied
+):
+    add_images(tmp_path, "a", "b")
+    path = config.config_path()
+    data = json.loads(path.read_text(encoding="utf-8"))
+    a, b = str(stored("a").resolve()), str(stored("b").resolve())
+    data["history"], data["current"] = [a, b], b
+    path.write_text(json.dumps(data), encoding="utf-8")
+    assert cli.main(["back"]) == 0
+    assert applied == [stored("a")]
+    assert config.get_history() == []
 
 
 # --- config file -------------------------------------------------------------

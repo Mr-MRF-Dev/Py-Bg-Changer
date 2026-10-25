@@ -18,7 +18,7 @@ import platform
 from pathlib import Path
 
 APP_NAME = "py-bg-changer"
-HISTORY_LIMIT = 20  # how many images `pbc back` can walk through
+HISTORY_LIMIT = 5  # how many previous images `pbc back` can walk through
 
 
 class ConfigError(Exception):
@@ -110,15 +110,18 @@ def get_default() -> str | None:
 
 def _history_of(data: dict) -> list[str]:
     history = data.get("history")
-    if isinstance(history, list):
-        return [item for item in history if isinstance(item, str)]
-    current = data.get("current")
-    # configs written before the history existed only know the current image
-    return [current] if isinstance(current, str) and current else []
+    if not isinstance(history, list):
+        return []
+    items = [item for item in history if isinstance(item, str)]
+    # An earlier format also kept the image that is set now at the end. It does not
+    # belong here, so drop it.
+    while items and items[-1] == data.get("current"):
+        items.pop()
+    return items
 
 
 def get_history() -> list[str]:
-    """Images this program set, oldest first. The last one is the current image."""
+    """The previous images, oldest first. It works like a stack: `back` takes the last."""
     return _history_of(_read_raw())
 
 
@@ -129,21 +132,22 @@ def get_current() -> str | None:
 
 
 def set_current(path: str) -> None:
-    """Remember which image was set last, for `pbc random` and `pbc back`."""
+    """Remember which image was set last. The one it replaces goes on the history."""
     data = _read_raw()
     history = _history_of(data)
-    if not history or history[-1] != path:
-        history.append(path)
+    previous = data.get("current")
+    if isinstance(previous, str) and previous and previous != path:
+        history.append(previous)
     data["current"] = path
     data["history"] = history[-HISTORY_LIMIT:]
     _write(data)
 
 
-def step_back(history: list[str]) -> None:
-    """Store the history that is left after going back; its last image is current."""
+def step_back(current: str, history: list[str]) -> None:
+    """Make `current` the image that is set now, with `history` left behind it."""
     data = _read_raw()
+    data["current"] = current
     data["history"] = history
-    data["current"] = history[-1]
     _write(data)
 
 
