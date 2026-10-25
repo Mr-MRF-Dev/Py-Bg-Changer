@@ -8,7 +8,7 @@ import random
 import sys
 from pathlib import Path
 
-from . import __version__, cache, config
+from . import __version__, cache, config, doctor
 from .wallpaper import WallpaperError, set_wallpaper
 
 COMMANDS = {
@@ -22,6 +22,9 @@ COMMANDS = {
     "rm",
     "default",
     "random",
+    "current",
+    "back",
+    "doctor",
     "path",
 }
 
@@ -40,6 +43,9 @@ def build_parser() -> argparse.ArgumentParser:
             "  pbc night                            set it by name or alias\n"
             "  pbc ~/Pictures/any.png               set any image directly\n"
             "  pbc random                           set a random saved wallpaper\n"
+            "  pbc current                          show which wallpaper is set now\n"
+            "  pbc back                             go back to the previous wallpaper\n"
+            "  pbc doctor                           check your setup if nothing changes\n"
             "  pbc default night                    choose what a plain 'pbc' sets\n"
             "  pbc                                  set the default wallpaper"
         ),
@@ -62,6 +68,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     sub.add_parser("random", help="set a random saved wallpaper")
+    sub.add_parser("current", help="show which wallpaper is set now")
+    sub.add_parser("back", help="go back to the previous wallpaper")
+    sub.add_parser("doctor", help="check your setup if a wallpaper does not change")
 
     p = sub.add_parser("add", help="save an image under a name")
     p.add_argument("name")
@@ -248,6 +257,48 @@ def cmd_random() -> int:
     return cmd_set(usable[random.choice(others or list(usable))])
 
 
+def _names_of(
+    image: Path, wallpapers: dict[str, str], aliases: dict[str, str]
+) -> list[str]:
+    """The saved wallpapers (with their aliases) that use this image."""
+    return [
+        _label(name, aliases)
+        for name, path in wallpapers.items()
+        if _resolved(path) == image
+    ]
+
+
+def cmd_current() -> int:
+    current = config.get_current()
+    if current is None:
+        print("Nothing has been set by py-bg-changer yet.")
+        return 0
+    image = _resolved(current)
+    names = _names_of(image, config.load(), config.load_aliases())
+    note = "" if image.is_file() else "  (missing)"
+    print(f"{', '.join(names)}  {image}{note}" if names else f"{image}{note}")
+    return 0
+
+
+def cmd_back() -> int:
+    # Drop the image that is set now, then look for the newest one that still exists.
+    previous = config.get_history()[:-1]
+    while previous and not Path(previous[-1]).is_file():
+        previous.pop()
+    if not previous:
+        return _error("There is no previous wallpaper to go back to.")
+
+    image = Path(previous[-1])
+    set_wallpaper(image)
+    try:
+        config.step_back(previous)
+    except (OSError, config.ConfigError):
+        pass  # the wallpaper is already set, so this is not worth failing for
+    names = _names_of(_resolved(image), config.load(), config.load_aliases())
+    print(f"Wallpaper set back to {names[0] if names else image}")
+    return 0
+
+
 def cmd_list() -> int:
     wallpapers = config.load()
     aliases = config.load_aliases()
@@ -429,6 +480,12 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_add(args.name, args.path, args.make_default, args.aliases)
         if args.command == "random":
             return cmd_random()
+        if args.command == "current":
+            return cmd_current()
+        if args.command == "back":
+            return cmd_back()
+        if args.command == "doctor":
+            return doctor.run()
         if args.command == "alias":
             return cmd_alias(args.name, args.aliases)
         if args.command == "rename":
