@@ -18,6 +18,7 @@ import platform
 from pathlib import Path
 
 APP_NAME = "py-bg-changer"
+HISTORY_LIMIT = 5  # how many previous images `pbc back` can walk through
 
 
 class ConfigError(Exception):
@@ -107,6 +108,23 @@ def get_default() -> str | None:
     return value if isinstance(value, str) and value else None
 
 
+def _history_of(data: dict) -> list[str]:
+    history = data.get("history")
+    if not isinstance(history, list):
+        return []
+    items = [item for item in history if isinstance(item, str)]
+    # An earlier format also kept the image that is set now at the end. It does not
+    # belong here, so drop it.
+    while items and items[-1] == data.get("current"):
+        items.pop()
+    return items
+
+
+def get_history() -> list[str]:
+    """The previous images, oldest first. It works like a stack: `back` takes the last."""
+    return _history_of(_read_raw())
+
+
 def get_current() -> str | None:
     """Path of the image this program set last, if it is known."""
     value = _read_raw().get("current")
@@ -114,9 +132,22 @@ def get_current() -> str | None:
 
 
 def set_current(path: str) -> None:
-    """Remember which image was set last, so `pbc random` can pick another one."""
+    """Remember which image was set last. The one it replaces goes on the history."""
     data = _read_raw()
+    history = _history_of(data)
+    previous = data.get("current")
+    if isinstance(previous, str) and previous and previous != path:
+        history.append(previous)
     data["current"] = path
+    data["history"] = history[-HISTORY_LIMIT:]
+    _write(data)
+
+
+def step_back(current: str, history: list[str]) -> None:
+    """Make `current` the image that is set now, with `history` left behind it."""
+    data = _read_raw()
+    data["current"] = current
+    data["history"] = history
     _write(data)
 
 

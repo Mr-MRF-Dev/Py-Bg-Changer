@@ -14,6 +14,9 @@ Simple cross-platform wallpaper changer made with Python. Change your desktop wa
 
 The command is `py-bg-changer`, and `pbc` is the short alias for it.
 
+> [!NOTE]
+> This project is written and published **just for fun**. The goal is to try out publishing a Python package, for testing, experience and fun.
+
 ## 📥 Installation
 
 you can install the latest version from [PyPI](https://pypi.org/project/py-bg-changer/) with [uv](https://docs.astral.sh/uv/) (recommended):
@@ -41,13 +44,16 @@ pbc rename night midnight            # rename a wallpaper or an alias
 pbc night                            # set it by name (or any alias: pbc n)
 pbc ~/Pictures/any.png               # or set any image directly
 pbc random                           # set a random saved wallpaper
+pbc current                          # show which wallpaper is set now
+pbc back                             # go back to the previous wallpaper
+pbc doctor                           # check your setup if a wallpaper does not change
 pbc list                             # see what you saved (* marks the default); `pbc ls` works too
 pbc default night                    # choose what a plain "pbc" sets
 pbc remove night                     # forget a name (or just an alias)
 pbc                                  # set the default wallpaper
 ```
 
-> If a saved name clashes with a command (say, one called `list`, `ls`, `default` or `random`), use `pbc set list`.
+> If a saved name clashes with a command (say, one called `list`, `ls`, `default` or `back`), use `pbc set list`.
 
 ## 🛠 Getting Started
 
@@ -104,6 +110,10 @@ Done :)
 - `pbc random` sets one of your saved wallpapers at random. It skips images whose file is missing, and (when you have more than one) it never picks the image that is set right now, so you always get a change. To know that, the last image set is remembered in the config file under `current`. It works from Win+R too: `pbcw random`.
 
 - On Linux with a bare X11 window manager (i3, bspwm, ...) install `feh` (`sudo pacman -S feh` on Arch). feh remembers the last wallpaper in `~/.fehbg`, so add `~/.fehbg &` to your window manager's startup to get it back after a restart.
+
+- `pbc current` and `pbc back` only know about images that py-bg-changer set itself. The 5 previous images are kept in the config file under `history`, like a stack (the image that is set now is stored under `current`, not in `history`). `pbc back` takes the newest one (skipping images whose file is gone), and it works from Win+R too: `pbcw back`.
+
+- If a wallpaper does not change, run `pbc doctor`. It shows your OS, desktop and session type, the config and image folder, and whether the tools that your desktop needs are installed. Please include its output when you open an issue.
 
 - A wallpaper can have as many aliases as you like, and every alias works anywhere a name does (`pbc n`, `pbc default n`, `pbc alias n moon`). Removing an alias leaves the wallpaper alone; removing a wallpaper also removes its aliases. Renaming a wallpaper keeps its aliases, its image and its place as the default.
 
