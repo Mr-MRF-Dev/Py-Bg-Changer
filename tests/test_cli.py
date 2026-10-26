@@ -38,9 +38,12 @@ def test_add_then_set_by_name(image, applied):
     assert applied == [stored("night")]
 
 
-def test_set_by_direct_path(image, applied):
-    assert cli.main([str(image)]) == 0
-    assert applied == [image]
+def test_setting_an_image_by_path_is_not_supported(image, applied, capsys):
+    assert cli.main([str(image)]) == 1
+    assert applied == []
+    err = capsys.readouterr().err
+    assert "not a saved name" in err
+    assert "pbc add NAME" in err
 
 
 def test_unknown_name_fails_with_suggestion(image, applied, capsys):
@@ -410,9 +413,10 @@ def test_random_never_repeats_back_to_back(tmp_path, applied):
     assert all(x != y for x, y in zip(applied, applied[1:]))
 
 
-def test_random_avoids_an_image_that_was_set_by_path(tmp_path, applied, first_choice):
+def test_random_avoids_an_image_that_was_set_by_alias(tmp_path, applied, first_choice):
     add_images(tmp_path, "a", "b")
-    assert cli.main([str(stored("a"))]) == 0
+    cli.main(["alias", "a", "x"])
+    assert cli.main(["x"]) == 0
     assert cli.main(["random"]) == 0
     assert applied == [stored("a"), stored("b")]
 
@@ -460,7 +464,9 @@ def test_setting_a_wallpaper_remembers_the_current_image(image, applied):
     cli.main(["add", "night", str(image)])
     assert config.get_current() is None
     cli.main(["night"])
-    assert Path(config.get_current()) == stored("night").resolve()
+    current = config.get_current()
+    assert current is not None
+    assert Path(current) == stored("night").resolve()
 
 
 # --- current and back ---------------------------------------------------------
@@ -481,19 +487,29 @@ def test_current_shows_the_name_and_aliases(image, applied, capsys):
     assert str(stored("night").resolve()) in out
 
 
-def test_current_shows_the_path_of_an_image_that_was_not_saved(image, applied, capsys):
-    cli.main([str(image)])
+def test_current_shows_only_the_path_after_the_wallpaper_was_removed(
+    image, applied, capsys
+):
+    cli.main(["add", "night", str(image)])
+    cli.main(["night"])
+    copy = stored("night").resolve()
+    cli.main(["remove", "night"])
     capsys.readouterr()
     assert cli.main(["current"]) == 0
-    assert capsys.readouterr().out.strip() == str(image.resolve())
+    out = capsys.readouterr().out
+    assert out.startswith(str(copy))
+    assert "(missing)" in out
 
 
 def test_current_marks_a_missing_file(image, applied, capsys):
-    cli.main([str(image)])
-    image.unlink()
+    cli.main(["add", "night", str(image)])
+    cli.main(["night"])
+    stored("night").unlink()
     capsys.readouterr()
     cli.main(["current"])
-    assert "(missing)" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert out.startswith("night")
+    assert "(missing)" in out
 
 
 def test_back_without_any_history_fails(applied, capsys):
@@ -541,7 +557,9 @@ def test_back_updates_the_current_image(tmp_path, applied):
     cli.main(["a"])
     cli.main(["b"])
     cli.main(["back"])
-    assert Path(config.get_current()) == stored("a").resolve()
+    current = config.get_current()
+    assert current is not None
+    assert Path(current) == stored("a").resolve()
 
 
 def test_back_prints_the_name(tmp_path, applied, capsys):
@@ -570,7 +588,9 @@ def test_history_does_not_contain_the_image_that_is_set_now(tmp_path, applied):
     assert config.get_history() == []
     cli.main(["b"])
     assert [Path(p) for p in config.get_history()] == [stored("a").resolve()]
-    assert Path(config.get_current()) == stored("b").resolve()
+    current = config.get_current()
+    assert current is not None
+    assert Path(current) == stored("b").resolve()
 
 
 def test_history_is_empty_again_after_going_all_the_way_back(tmp_path, applied):
@@ -580,7 +600,9 @@ def test_history_is_empty_again_after_going_all_the_way_back(tmp_path, applied):
     cli.main(["back"])
     cli.main(["back"])
     assert config.get_history() == []
-    assert Path(config.get_current()) == stored("a").resolve()
+    current = config.get_current()
+    assert current is not None
+    assert Path(current) == stored("a").resolve()
 
 
 def test_setting_the_same_image_again_does_not_grow_the_history(tmp_path, applied):

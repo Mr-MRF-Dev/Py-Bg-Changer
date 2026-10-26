@@ -40,13 +40,12 @@ def build_parser() -> argparse.ArgumentParser:
             "  pbc add night img.jpg -a n -a dark   ...with extra names (aliases)\n"
             "  pbc alias night moon                 add more aliases later\n"
             "  pbc rename night midnight            rename a wallpaper or an alias\n"
+            "  pbc default night                    choose what a plain 'pbc' sets\n"
             "  pbc night                            set it by name or alias\n"
-            "  pbc ~/Pictures/any.png               set any image directly\n"
             "  pbc random                           set a random saved wallpaper\n"
             "  pbc current                          show which wallpaper is set now\n"
             "  pbc back                             go back to the previous wallpaper\n"
             "  pbc doctor                           check your setup if nothing changes\n"
-            "  pbc default night                    choose what a plain 'pbc' sets\n"
             "  pbc                                  set the default wallpaper"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -60,7 +59,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "target",
         nargs="?",
-        help="a saved name, an alias or a path to an image (omit it to use the default)",
+        help="a saved name or an alias (omit it to use the default)",
     )
 
     sub.add_parser(
@@ -211,20 +210,20 @@ def cmd_set(target: str | None) -> int:
             )
 
     saved = _resolve(target, wallpapers, aliases)
-    if saved is not None:
-        image = Path(wallpapers[saved]).expanduser()
-        label = f"'{saved}'"
-    elif Path(target).expanduser().is_file():
-        image = Path(target).expanduser()
-        label = str(image)
-    else:
+    if saved is None:
+        if Path(target).expanduser().is_file():
+            return _error(
+                f"'{target}' is an image file, not a saved name.\n"
+                f"Save it first with:  pbc add NAME {target}"
+            )
         return _unknown(target, wallpapers, aliases)
 
+    image = Path(wallpapers[saved]).expanduser()
+    label = f"'{saved}'"
     if not image.is_file():
-        message = f"File not found: {image}"
-        if saved is not None:
-            message += f"\nAdd it again with:  pbc add {saved} IMAGE"
-        return _error(message)
+        return _error(
+            f"File not found: {image}\nAdd it again with:  pbc add {saved} IMAGE"
+        )
 
     set_wallpaper(image)
     _remember(image)
