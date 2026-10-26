@@ -41,15 +41,15 @@ pbc add night img.jpg -a n -a dark   # ...and give it extra names (aliases)
 pbc add night img.jpg --default      # ...or make it the default right away
 pbc alias night moon                 # add more aliases later
 pbc rename night midnight            # rename a wallpaper or an alias
+pbc default night                    # choose what a plain "pbc" sets
+pbc remove night                     # forget a name (or just an alias)
+pbc set night                        # set it by name (or any alias: pbc set n)
 pbc night                            # set it by name (or any alias: pbc n)
-pbc ~/Pictures/any.png               # or set any image directly
 pbc random                           # set a random saved wallpaper
 pbc current                          # show which wallpaper is set now
 pbc back                             # go back to the previous wallpaper
 pbc doctor                           # check your setup if a wallpaper does not change
 pbc list                             # see what you saved (* marks the default); `pbc ls` works too
-pbc default night                    # choose what a plain "pbc" sets
-pbc remove night                     # forget a name (or just an alias)
 pbc                                  # set the default wallpaper
 ```
 
@@ -96,6 +96,34 @@ follow the instruction to install Py Bg Changer from source (to try the latest c
 Done :)
 
 > to remove it later: `uv tool uninstall py-bg-changer` (your saved wallpapers and config stay where they are).
+
+## 🏷️ Versioning
+
+this project follows [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`):
+
+- **patch** (`1.0.0` → `1.0.1`): bug fixes, or small changes you want on the PyPI page
+- **minor** (`1.0.0` → `1.1.0`): new features that do not break anything
+- **major** (`1.0.0` → `2.0.0`): changes that break the old behavior
+
+### 🔄 Updating the app
+
+check which version you have:
+
+```bash
+pbc --version
+```
+
+then update with the same tool you used to install it:
+
+| Installed with             | Update with                                                             |
+| -------------------------- | ----------------------------------------------------------------------- |
+| `uv tool install`          | `uv tool upgrade py-bg-changer`                                         |
+| `pipx`                     | `pipx upgrade py-bg-changer`                                            |
+| `pip`                      | `pip install --upgrade py-bg-changer`                                   |
+| `uvx` (no install)         | `uvx --from py-bg-changer@latest pbc` (`@latest` skips the cached copy) |
+| from source (`--editable`) | `git pull`, then `uv tool install --editable --reinstall .`             |
+
+> your saved wallpapers, aliases and config are never touched by an update. Run `pbc --version` again to make sure it worked.
 
 ## 💡 Tips
 
