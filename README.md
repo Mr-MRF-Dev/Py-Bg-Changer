@@ -41,15 +41,15 @@ pbc add night img.jpg -a n -a dark   # ...and give it extra names (aliases)
 pbc add night img.jpg --default      # ...or make it the default right away
 pbc alias night moon                 # add more aliases later
 pbc rename night midnight            # rename a wallpaper or an alias
+pbc default night                    # choose what a plain "pbc" sets
+pbc remove night                     # forget a name (or just an alias)
+pbc set night                        # set it by name (or any alias: pbc set n)
 pbc night                            # set it by name (or any alias: pbc n)
-pbc ~/Pictures/any.png               # or set any image directly
 pbc random                           # set a random saved wallpaper
 pbc current                          # show which wallpaper is set now
 pbc back                             # go back to the previous wallpaper
 pbc doctor                           # check your setup if a wallpaper does not change
 pbc list                             # see what you saved (* marks the default); `pbc ls` works too
-pbc default night                    # choose what a plain "pbc" sets
-pbc remove night                     # forget a name (or just an alias)
 pbc                                  # set the default wallpaper
 ```
 
