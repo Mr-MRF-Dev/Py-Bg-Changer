@@ -97,6 +97,34 @@ Done :)
 
 > to remove it later: `uv tool uninstall py-bg-changer` (your saved wallpapers and config stay where they are).
 
+## 🏷️ Versioning
+
+this project follows [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`):
+
+- **patch** (`1.0.0` → `1.0.1`): bug fixes, or small changes you want on the PyPI page
+- **minor** (`1.0.0` → `1.1.0`): new features that do not break anything
+- **major** (`1.0.0` → `2.0.0`): changes that break the old behavior
+
+### 🔄 Updating the app
+
+check which version you have:
+
+```bash
+pbc --version
+```
+
+then update with the same tool you used to install it:
+
+| Installed with             | Update with                                                             |
+| -------------------------- | ----------------------------------------------------------------------- |
+| `uv tool install`          | `uv tool upgrade py-bg-changer`                                         |
+| `pipx`                     | `pipx upgrade py-bg-changer`                                            |
+| `pip`                      | `pip install --upgrade py-bg-changer`                                   |
+| `uvx` (no install)         | `uvx --from py-bg-changer@latest pbc` (`@latest` skips the cached copy) |
+| from source (`--editable`) | `git pull`, then `uv tool install --editable --reinstall .`             |
+
+> your saved wallpapers, aliases and config are never touched by an update. Run `pbc --version` again to make sure it worked.
+
 ## 💡 Tips
 
 - Running `pbc` from Win+R opens a terminal that closes right away. Use `pbcw` (or `py-bg-changer-w`) instead: it takes the same arguments, opens no window, and shows a small message box only if something goes wrong.
