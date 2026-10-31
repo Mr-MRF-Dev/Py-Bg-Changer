@@ -27,7 +27,7 @@ def set_wallpaper(path: Path) -> None:
         raise WallpaperError(f"Unsupported operating system: {system}")
 
 
-def _run(cmd: list[str], *, check: bool = True) -> subprocess.CompletedProcess:
+def _run(cmd: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
     if shutil.which(cmd[0]) is None:
         raise WallpaperError(f"'{cmd[0]}' was not found on this system.")
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -46,7 +46,8 @@ def _windows(path: Path) -> None:
     SPI_SETDESKWALLPAPER = 0x0014
     SPIF_UPDATEINIFILE = 0x01
     SPIF_SENDCHANGE = 0x02
-    ok = ctypes.windll.user32.SystemParametersInfoW(
+    # `windll` only exists on Windows, so type checkers on other systems do not know it.
+    ok = ctypes.windll.user32.SystemParametersInfoW(  # type: ignore[attr-defined,unused-ignore]
         SPI_SETDESKWALLPAPER, 0, str(path), SPIF_UPDATEINIFILE | SPIF_SENDCHANGE
     )
     if not ok:

@@ -16,6 +16,7 @@ import json
 import os
 import platform
 from pathlib import Path
+from typing import Any
 
 APP_NAME = "py-bg-changer"
 HISTORY_LIMIT = 5  # how many previous images `pbc back` can walk through
@@ -44,7 +45,7 @@ def config_path() -> Path:
     return config_dir() / "config.json"
 
 
-def _read_raw() -> dict:
+def _read_raw() -> dict[str, Any]:
     path = config_path()
     if not path.exists():
         return {}
@@ -57,7 +58,7 @@ def _read_raw() -> dict:
     return data
 
 
-def _write(data: dict) -> None:
+def _write(data: dict[str, Any]) -> None:
     path = config_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(path.name + ".tmp")
@@ -108,7 +109,7 @@ def get_default() -> str | None:
     return value if isinstance(value, str) and value else None
 
 
-def _history_of(data: dict) -> list[str]:
+def _history_of(data: dict[str, Any]) -> list[str]:
     history = data.get("history")
     if not isinstance(history, list):
         return []
