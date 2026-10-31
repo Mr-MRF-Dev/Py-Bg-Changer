@@ -29,7 +29,7 @@ py-bg-changer-w = "py_bg_changer.gui:main"
 pbcw = "py_bg_changer.gui:main"
 
 [dependency-groups]
-dev = ["pytest"]
+dev = ["black", "mypy", "pytest", "ruff"]
 
 [build-system]
 requires = ["uv_build"]
@@ -37,3 +37,17 @@ build-backend = "uv_build"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]                   # black takes care of the line length
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+files = ["src"]
