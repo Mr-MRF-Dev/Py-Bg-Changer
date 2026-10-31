@@ -1,11 +1,4 @@
-import pytest
-
 from py_bg_changer import cli, config, doctor, wallpaper
-
-
-@pytest.fixture(autouse=True)
-def isolated_config(tmp_path, monkeypatch):
-    monkeypatch.setenv("PBC_CONFIG", str(tmp_path / "config.json"))
 
 
 def backend(monkeypatch, info):
