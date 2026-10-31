@@ -175,6 +175,9 @@ the project is managed with [uv](https://docs.astral.sh/uv/):
 uv sync              # create the virtualenv and install everything
 uv run pytest        # run the tests
 uv run pbc --help    # run the CLI from source
+uv run black .       # format the code
+uv run ruff check .  # lint
+uv run mypy          # check the types
 ```
 
 ## 🤝 Contributing
