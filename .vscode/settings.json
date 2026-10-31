@@ -1,3 +1,10 @@
 {
-  "cSpell.words": ["pbcw", "pipx", "pyproject", "pytest", "testpaths"]
+  "cSpell.words": [
+    "mypy",
+    "pbcw",
+    "pipx",
+    "pyproject",
+    "pytest",
+    "testpaths"
+  ]
 }
