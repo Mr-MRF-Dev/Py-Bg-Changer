@@ -7,9 +7,11 @@ import difflib
 import random
 import sys
 from pathlib import Path
+from typing import NoReturn
 
 from . import __version__, cache, config, doctor
-from .wallpaper import WallpaperError, set_wallpaper
+from .errors import ConfigError, PbcError, UsageError, UserError
+from .wallpaper import set_wallpaper
 
 COMMANDS = {
     "set",
@@ -29,8 +31,15 @@ COMMANDS = {
 }
 
 
+class _Parser(argparse.ArgumentParser):
+    """argparse, but a wrong command line is an error to raise, not a reason to exit."""
+
+    def error(self, message: str) -> NoReturn:
+        raise UsageError(f"{self.format_usage()}{self.prog}: error: {message}")
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
+    parser = _Parser(
         prog="py-bg-changer",
         description="Change your desktop wallpaper from the command line.",
         epilog=(
@@ -110,11 +119,6 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _error(message: str) -> int:
-    print(message, file=sys.stderr)
-    return 1
-
-
 def _dedupe(items: list[str]) -> list[str]:
     return list(dict.fromkeys(items))
 
@@ -155,7 +159,9 @@ def _check_aliases(
     return None
 
 
-def _unknown(target: str, wallpapers: dict[str, str], aliases: dict[str, str]) -> int:
+def _unknown(
+    target: str, wallpapers: dict[str, str], aliases: dict[str, str]
+) -> NoReturn:
     message = f"Unknown wallpaper: '{target}'"
     close = difflib.get_close_matches(target, [*wallpapers, *aliases], n=1)
     if close:
@@ -165,7 +171,7 @@ def _unknown(target: str, wallpapers: dict[str, str], aliases: dict[str, str]) -
         message += f"\nAvailable: {labels}"
     else:
         message += "\nNothing is saved yet. Save one with:  pbc add NAME IMAGE"
-    return _error(message)
+    raise UserError(message)
 
 
 def _default_name(wallpapers: dict[str, str], aliases: dict[str, str]) -> str | None:
@@ -188,11 +194,11 @@ def _remember(image: Path) -> None:
     """Note which image was set last, so `pbc random` can pick a different one."""
     try:
         config.set_current(str(_resolved(image)))
-    except (OSError, config.ConfigError):
+    except (OSError, ConfigError):
         pass  # only a convenience, never worth failing for
 
 
-def cmd_set(target: str | None) -> int:
+def cmd_set(target: str | None) -> None:
     wallpapers = config.load()
     aliases = config.load_aliases()
 
@@ -200,11 +206,11 @@ def cmd_set(target: str | None) -> int:
         target = _default_name(wallpapers, aliases)
         if target is None:
             if not wallpapers:
-                return _error(
+                raise UserError(
                     "Nothing is saved yet. Save one with:  pbc add NAME IMAGE --default"
                 )
             labels = ", ".join(_label(name, aliases) for name in wallpapers)
-            return _error(
+            raise UserError(
                 "No default wallpaper is set. Choose one with:  pbc default NAME\n"
                 f"Available: {labels}"
             )
@@ -212,29 +218,28 @@ def cmd_set(target: str | None) -> int:
     saved = _resolve(target, wallpapers, aliases)
     if saved is None:
         if Path(target).expanduser().is_file():
-            return _error(
+            raise UserError(
                 f"'{target}' is an image file, not a saved name.\n"
                 f"Save it first with:  pbc add NAME {target}"
             )
-        return _unknown(target, wallpapers, aliases)
+        _unknown(target, wallpapers, aliases)
 
     image = Path(wallpapers[saved]).expanduser()
     label = f"'{saved}'"
     if not image.is_file():
-        return _error(
+        raise UserError(
             f"File not found: {image}\nAdd it again with:  pbc add {saved} IMAGE"
         )
 
     set_wallpaper(image)
     _remember(image)
     print(f"Wallpaper set to {label}")
-    return 0
 
 
-def cmd_random() -> int:
+def cmd_random() -> None:
     wallpapers = config.load()
     if not wallpapers:
-        return _error("Nothing is saved yet. Save one with:  pbc add NAME IMAGE")
+        raise UserError("Nothing is saved yet. Save one with:  pbc add NAME IMAGE")
 
     # One entry per image (two names can share one file); missing files are skipped.
     usable: dict[Path, str] = {}
@@ -243,7 +248,7 @@ def cmd_random() -> int:
         if image.is_file():
             usable.setdefault(image, name)
     if not usable:
-        return _error(
+        raise UserError(
             "None of the saved images exist any more. "
             "Add them again with:  pbc add NAME IMAGE"
         )
@@ -253,7 +258,7 @@ def cmd_random() -> int:
     others = [
         image for image in usable if current is None or image != _resolved(current)
     ]
-    return cmd_set(usable[random.choice(others or list(usable))])
+    cmd_set(usable[random.choice(others or list(usable))])
 
 
 def _names_of(
@@ -267,43 +272,41 @@ def _names_of(
     ]
 
 
-def cmd_current() -> int:
+def cmd_current() -> None:
     current = config.get_current()
     if current is None:
         print("Nothing has been set by py-bg-changer yet.")
-        return 0
+        return
     image = _resolved(current)
     names = _names_of(image, config.load(), config.load_aliases())
     note = "" if image.is_file() else "  (missing)"
     print(f"{', '.join(names)}  {image}{note}" if names else f"{image}{note}")
-    return 0
 
 
-def cmd_back() -> int:
+def cmd_back() -> None:
     # Take the newest previous image that still exists.
     history = config.get_history()
     while history and not Path(history[-1]).is_file():
         history.pop()
     if not history:
-        return _error("There is no previous wallpaper to go back to.")
+        raise UserError("There is no previous wallpaper to go back to.")
 
     image = _resolved(history.pop())
     set_wallpaper(image)
     try:
         config.step_back(str(image), history)
-    except (OSError, config.ConfigError):
+    except (OSError, ConfigError):
         pass  # the wallpaper is already set, so this is not worth failing for
     names = _names_of(image, config.load(), config.load_aliases())
     print(f"Wallpaper set back to {names[0] if names else image}")
-    return 0
 
 
-def cmd_list() -> int:
+def cmd_list() -> None:
     wallpapers = config.load()
     aliases = config.load_aliases()
     if not wallpapers:
         print("Nothing saved yet. Save one with:  pbc add NAME IMAGE")
-        return 0
+        return
     default = _default_name(wallpapers, aliases)
     labels = {name: _label(name, aliases) for name in wallpapers}
     width = max(len(label) for label in labels.values())
@@ -311,32 +314,31 @@ def cmd_list() -> int:
         mark = "*" if name == default else " "
         note = "" if Path(path).expanduser().is_file() else "  (missing)"
         print(f"{mark} {labels[name]:<{width}}  {path}{note}")
-    return 0
 
 
 def cmd_add(
     name: str, path: str, make_default: bool, alias_names: list[str] | None
-) -> int:
+) -> None:
     source = Path(path).expanduser().resolve()
     if not source.is_file():
-        return _error(f"File not found: {source}")
+        raise UserError(f"File not found: {source}")
 
     wallpapers = config.load()
     aliases = config.load_aliases()
     if name in aliases:
-        return _error(
+        raise UserError(
             f"'{name}' is already an alias of '{aliases[name]}'.\n"
             f"Remove the alias first with:  pbc remove {name}"
         )
     requested = _dedupe(alias_names or [])
     problem = _check_aliases(name, requested, wallpapers, aliases)
     if problem:
-        return _error(problem)
+        raise UserError(problem)
 
     try:
         stored = cache.store(source)
     except OSError as exc:
-        return _error(f"Could not copy {source}: {exc}")
+        raise UserError(f"Could not copy {source}: {exc}") from exc
 
     previous = wallpapers.get(name)
     wallpapers[name] = str(stored)
@@ -352,44 +354,42 @@ def cmd_add(
     if make_default:
         config.set_default(name)
         print(f"'{name}' is now the default wallpaper")
-    return 0
 
 
-def cmd_alias(name: str, new_aliases: list[str]) -> int:
+def cmd_alias(name: str, new_aliases: list[str]) -> None:
     wallpapers = config.load()
     aliases = config.load_aliases()
     real = _resolve(name, wallpapers, aliases)
     if real is None:
-        return _unknown(name, wallpapers, aliases)
+        _unknown(name, wallpapers, aliases)
 
     requested = _dedupe(new_aliases)
     problem = _check_aliases(real, requested, wallpapers, aliases)
     if problem:
-        return _error(problem)
+        raise UserError(problem)
 
     added = [alias for alias in requested if alias not in aliases]
     if not added:
         print(f"'{real}' already has those aliases")
-        return 0
+        return
     for alias in added:
         aliases[alias] = real
     config.save(wallpapers, aliases)
     print(f"'{real}' is now also called: {', '.join(added)}")
-    return 0
 
 
-def cmd_rename(old: str, new: str) -> int:
+def cmd_rename(old: str, new: str) -> None:
     wallpapers = config.load()
     aliases = config.load_aliases()
     if old not in wallpapers and old not in aliases:
-        return _unknown(old, wallpapers, aliases)
+        _unknown(old, wallpapers, aliases)
     if new == old:
         print(f"'{old}' is already called that")
-        return 0
+        return
     if new in wallpapers:
-        return _error(f"'{new}' is already a saved wallpaper name.")
+        raise UserError(f"'{new}' is already a saved wallpaper name.")
     if new in aliases:
-        return _error(f"'{new}' is already an alias of '{aliases[new]}'.")
+        raise UserError(f"'{new}' is already an alias of '{aliases[new]}'.")
 
     # Rebuild the dicts so the renamed entry keeps its place in the list.
     if old in wallpapers:
@@ -411,10 +411,9 @@ def cmd_rename(old: str, new: str) -> int:
     if config.get_default() == old:
         config.set_default(new)
     print(f"Renamed {what} to '{new}'")
-    return 0
 
 
-def cmd_default(name: str | None) -> int:
+def cmd_default(name: str | None) -> None:
     wallpapers = config.load()
     aliases = config.load_aliases()
     if name is None:
@@ -424,16 +423,15 @@ def cmd_default(name: str | None) -> int:
             print(resolved)
         else:
             print("No default set. Choose one with:  pbc default NAME")
-        return 0
+        return
     resolved = _resolve(name, wallpapers, aliases)
     if resolved is None:
-        return _unknown(name, wallpapers, aliases)
+        _unknown(name, wallpapers, aliases)
     config.set_default(resolved)
     print(f"'{resolved}' is now the default wallpaper")
-    return 0
 
 
-def cmd_remove(name: str) -> int:
+def cmd_remove(name: str) -> None:
     wallpapers = config.load()
     aliases = config.load_aliases()
 
@@ -450,52 +448,62 @@ def cmd_remove(name: str) -> int:
         if gone:
             message += f" (and its aliases: {', '.join(gone)})"
         print(message)
-        return 0
+        return
 
     if name in aliases:
         target = aliases.pop(name)
         config.save(wallpapers, aliases)
         print(f"Removed alias '{name}' (the wallpaper '{target}' is still saved)")
-        return 0
+        return
 
-    return _error(f"Unknown wallpaper: '{name}'")
+    raise UserError(f"Unknown wallpaper: '{name}'")
+
+
+def run(argv: list[str] | None = None) -> int:
+    """Run one command and return its exit code.
+
+    Problems are raised as `PbcError`; `main` shows them in the terminal.
+    """
+    args_list = list(sys.argv[1:] if argv is None else argv)
+
+    # "pbc night" is shorthand for "pbc set night".
+    if not args_list or (
+        args_list[0] not in COMMANDS and not args_list[0].startswith("-")
+    ):
+        args_list.insert(0, "set")
+
+    args = build_parser().parse_args(args_list)
+
+    if args.command == "set":
+        cmd_set(args.target)
+    elif args.command in ("list", "ls"):
+        cmd_list()
+    elif args.command == "add":
+        cmd_add(args.name, args.path, args.make_default, args.aliases)
+    elif args.command == "random":
+        cmd_random()
+    elif args.command == "current":
+        cmd_current()
+    elif args.command == "back":
+        cmd_back()
+    elif args.command == "doctor":
+        return doctor.run()
+    elif args.command == "alias":
+        cmd_alias(args.name, args.aliases)
+    elif args.command == "rename":
+        cmd_rename(args.old, args.new)
+    elif args.command == "default":
+        cmd_default(args.name)
+    elif args.command in ("remove", "rm"):
+        cmd_remove(args.name)
+    elif args.command == "path":
+        print(config.config_path())
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
-    argv = list(sys.argv[1:] if argv is None else argv)
-
-    # "pbc night" is shorthand for "pbc set night".
-    if not argv or (argv[0] not in COMMANDS and not argv[0].startswith("-")):
-        argv.insert(0, "set")
-
-    args = build_parser().parse_args(argv)
-
     try:
-        if args.command == "set":
-            return cmd_set(args.target)
-        if args.command in ("list", "ls"):
-            return cmd_list()
-        if args.command == "add":
-            return cmd_add(args.name, args.path, args.make_default, args.aliases)
-        if args.command == "random":
-            return cmd_random()
-        if args.command == "current":
-            return cmd_current()
-        if args.command == "back":
-            return cmd_back()
-        if args.command == "doctor":
-            return doctor.run()
-        if args.command == "alias":
-            return cmd_alias(args.name, args.aliases)
-        if args.command == "rename":
-            return cmd_rename(args.old, args.new)
-        if args.command == "default":
-            return cmd_default(args.name)
-        if args.command in ("remove", "rm"):
-            return cmd_remove(args.name)
-        if args.command == "path":
-            print(config.config_path())
-            return 0
-    except (config.ConfigError, WallpaperError) as exc:
-        return _error(str(exc))
-    return 0
+        return run(argv)
+    except PbcError as exc:
+        print(exc, file=sys.stderr)
+        return exc.exit_code
