@@ -1,6 +1,6 @@
 import pytest
 
-from py_bg_changer import gui
+from py_bg_changer import doctor, gui, wallpaper
 
 
 @pytest.fixture
@@ -36,6 +36,22 @@ def test_unexpected_errors_show_a_message(monkeypatch, popups):
     def boom(argv):
         raise RuntimeError("kaboom")
 
-    monkeypatch.setattr(gui, "cli_main", boom)
+    monkeypatch.setattr(gui, "cli_run", boom)
     assert gui.main(["anything"]) == 1
     assert "kaboom" in popups[0]
+
+
+def test_a_report_with_problems_is_shown_in_a_message(monkeypatch, popups):
+    info = wallpaper.Backend(
+        "none", supported=False, note="this desktop is not supported"
+    )
+    monkeypatch.setattr(doctor, "backend_info", lambda: info)
+    assert gui.main(["doctor"]) == 1
+    assert len(popups) == 1
+    assert "not supported" in popups[0]
+    assert "Found 1 problem" in popups[0]
+
+
+def test_help_is_silent_and_not_an_error(popups):
+    assert gui.main(["--help"]) == 0
+    assert popups == []
