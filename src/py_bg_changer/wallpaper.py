@@ -9,9 +9,7 @@ import subprocess
 from pathlib import Path
 from typing import NamedTuple
 
-
-class WallpaperError(Exception):
-    """The wallpaper could not be applied."""
+from .errors import WallpaperError
 
 
 def set_wallpaper(path: Path) -> None:

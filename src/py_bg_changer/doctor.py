@@ -8,6 +8,7 @@ import shutil
 from pathlib import Path
 
 from . import __version__, cache, config
+from .errors import ConfigError
 from .wallpaper import backend_info
 
 
@@ -33,7 +34,7 @@ def run() -> int:
         wallpapers = config.load()
         aliases = config.load_aliases()
         default = config.get_default()
-    except config.ConfigError as exc:
+    except ConfigError as exc:
         problems += 1
         _line("Saved:", f"cannot be read: {exc}")
     else:

@@ -18,12 +18,10 @@ import platform
 from pathlib import Path
 from typing import Any
 
+from .errors import ConfigError
+
 APP_NAME = "py-bg-changer"
 HISTORY_LIMIT = 5  # how many previous images `pbc back` can walk through
-
-
-class ConfigError(Exception):
-    """The config file exists but cannot be used."""
 
 
 def config_dir() -> Path:
