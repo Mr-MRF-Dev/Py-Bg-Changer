@@ -1,4 +1,4 @@
-from helpers import stored
+from helpers import save_wallpapers, stored
 from py_bg_changer import cli, config
 
 
@@ -24,7 +24,7 @@ def test_no_arguments_sets_the_chosen_default(tmp_path, image, applied):
 
 def test_add_with_default_flag(image):
     cli.main(["add", "night", str(image), "--default"])
-    assert config.get_default() == "night"
+    assert config.load_library().default == "night"
 
 
 def test_no_default_gives_a_hint(image, applied, capsys):
@@ -42,11 +42,11 @@ def test_default_must_be_a_saved_name(capsys):
 def test_removing_the_default_clears_it(image):
     cli.main(["add", "night", str(image), "-d"])
     cli.main(["remove", "night"])
-    assert config.get_default() is None
+    assert config.load_library().default is None
 
 
 def test_wallpaper_named_default_still_works(image, applied):
     # configs from the original bg.py have a wallpaper literally named "default"
-    config.save({"default": str(image)})
+    save_wallpapers({"default": str(image)})
     assert cli.main([]) == 0
     assert applied == [image]

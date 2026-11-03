@@ -1,4 +1,4 @@
-from helpers import stored
+from helpers import save_wallpapers, stored
 from py_bg_changer import cli, config
 
 
@@ -26,7 +26,7 @@ def test_unknown_name_fails_with_suggestion(image, applied, capsys):
 
 
 def test_missing_file_fails(tmp_path, applied, capsys):
-    config.save({"gone": str(tmp_path / "gone.png")})
+    save_wallpapers({"gone": str(tmp_path / "gone.png")})
     assert cli.main(["gone"]) == 1
     assert applied == []
     assert "File not found" in capsys.readouterr().err
@@ -35,4 +35,4 @@ def test_missing_file_fails(tmp_path, applied, capsys):
 def test_remove(image):
     cli.main(["add", "a", str(image)])
     assert cli.main(["remove", "a"]) == 0
-    assert config.load() == {}
+    assert config.load_library().wallpapers == {}

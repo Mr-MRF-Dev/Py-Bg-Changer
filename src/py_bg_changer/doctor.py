@@ -31,20 +31,20 @@ def run() -> int:
     _line("Config:", f"{path}" + ("" if path.exists() else "  (not created yet)"))
     _line("Images:", cache.cache_dir())
     try:
-        wallpapers = config.load()
-        aliases = config.load_aliases()
-        default = config.get_default()
+        library = config.load_library()
     except ConfigError as exc:
         problems += 1
         _line("Saved:", f"cannot be read: {exc}")
     else:
-        saved = f"{len(wallpapers)} wallpaper(s), {len(aliases)} alias(es)"
-        if default:
-            saved += f", default: {default}"
+        saved = (
+            f"{len(library.wallpapers)} wallpaper(s), {len(library.aliases)} alias(es)"
+        )
+        if library.default:
+            saved += f", default: {library.default}"
         _line("Saved:", saved)
         missing = [
             name
-            for name, image in wallpapers.items()
+            for name, image in library.wallpapers.items()
             if not Path(image).expanduser().is_file()
         ]
         if missing:

@@ -3,6 +3,7 @@ from pathlib import Path
 
 from helpers import add_images, stored
 from py_bg_changer import cli, config
+from py_bg_changer.state import HISTORY_LIMIT
 
 
 def test_current_when_nothing_was_set(capsys):
@@ -90,7 +91,7 @@ def test_back_updates_the_current_image(tmp_path, applied):
     cli.main(["a"])
     cli.main(["b"])
     cli.main(["back"])
-    current = config.get_current()
+    current = config.load_state().current
     assert current is not None
     assert Path(current) == stored("a").resolve()
 
@@ -109,8 +110,8 @@ def test_history_keeps_only_the_five_previous_images(tmp_path, applied):
     add_images(tmp_path, *names)
     for name in names:
         cli.main([name])
-    assert config.HISTORY_LIMIT == 5
-    assert [Path(p) for p in config.get_history()] == [
+    assert HISTORY_LIMIT == 5
+    assert [Path(p) for p in config.load_state().history] == [
         stored(name).resolve() for name in "cdefg"
     ]
 
@@ -118,10 +119,10 @@ def test_history_keeps_only_the_five_previous_images(tmp_path, applied):
 def test_history_does_not_contain_the_image_that_is_set_now(tmp_path, applied):
     add_images(tmp_path, "a", "b")
     cli.main(["a"])
-    assert config.get_history() == []
+    assert config.load_state().history == []
     cli.main(["b"])
-    assert [Path(p) for p in config.get_history()] == [stored("a").resolve()]
-    current = config.get_current()
+    assert [Path(p) for p in config.load_state().history] == [stored("a").resolve()]
+    current = config.load_state().current
     assert current is not None
     assert Path(current) == stored("b").resolve()
 
@@ -132,8 +133,8 @@ def test_history_is_empty_again_after_going_all_the_way_back(tmp_path, applied):
         cli.main([name])
     cli.main(["back"])
     cli.main(["back"])
-    assert config.get_history() == []
-    current = config.get_current()
+    assert config.load_state().history == []
+    current = config.load_state().current
     assert current is not None
     assert Path(current) == stored("a").resolve()
 
@@ -142,7 +143,7 @@ def test_setting_the_same_image_again_does_not_grow_the_history(tmp_path, applie
     add_images(tmp_path, "a")
     for _ in range(3):
         cli.main(["a"])
-    assert config.get_history() == []
+    assert config.load_state().history == []
 
 
 def test_history_starts_from_the_current_image_of_an_older_version(tmp_path, applied):
@@ -167,4 +168,4 @@ def test_an_older_history_that_ended_with_the_current_image_still_works(
     path.write_text(json.dumps(data), encoding="utf-8")
     assert cli.main(["back"]) == 0
     assert applied == [stored("a")]
-    assert config.get_history() == []
+    assert config.load_state().history == []

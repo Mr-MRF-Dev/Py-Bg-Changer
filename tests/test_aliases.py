@@ -12,7 +12,7 @@ def test_add_with_aliases_then_set_by_alias(image, applied):
 def test_alias_command_adds_aliases_later(image, applied):
     cli.main(["add", "night", str(image)])
     assert cli.main(["alias", "night", "n", "dark"]) == 0
-    assert config.load_aliases() == {"n": "night", "dark": "night"}
+    assert config.load_library().aliases == {"n": "night", "dark": "night"}
     assert cli.main(["n"]) == 0
     assert applied == [stored("night")]
 
@@ -20,7 +20,7 @@ def test_alias_command_adds_aliases_later(image, applied):
 def test_alias_can_be_added_through_another_alias(image):
     cli.main(["add", "night", str(image), "-a", "n"])
     assert cli.main(["alias", "n", "dark"]) == 0
-    assert config.load_aliases()["dark"] == "night"
+    assert config.load_library().aliases["dark"] == "night"
 
 
 def test_alias_cannot_reuse_a_wallpaper_name(tmp_path, image, capsys):
@@ -30,7 +30,7 @@ def test_alias_cannot_reuse_a_wallpaper_name(tmp_path, image, capsys):
     cli.main(["add", "day", str(other)])
     assert cli.main(["alias", "night", "day"]) == 1
     assert "already a saved wallpaper" in capsys.readouterr().err
-    assert config.load_aliases() == {}
+    assert config.load_library().aliases == {}
 
 
 def test_alias_cannot_point_to_two_wallpapers(tmp_path, image, capsys):
@@ -40,7 +40,7 @@ def test_alias_cannot_point_to_two_wallpapers(tmp_path, image, capsys):
     cli.main(["add", "day", str(other)])
     assert cli.main(["alias", "day", "n"]) == 1
     assert "already an alias of 'night'" in capsys.readouterr().err
-    assert config.load_aliases() == {"n": "night"}
+    assert config.load_library().aliases == {"n": "night"}
 
 
 def test_name_cannot_be_an_existing_alias(image, capsys):
@@ -54,20 +54,20 @@ def test_failed_add_changes_nothing(tmp_path, image):
     other.write_bytes(b"y")
     cli.main(["add", "night", str(image)])
     assert cli.main(["add", "day", str(other), "-a", "night"]) == 1
-    assert list(config.load()) == ["night"]
+    assert list(config.load_library().wallpapers) == ["night"]
     assert len(list(cache.cache_dir().iterdir())) == 1
 
 
 def test_adding_the_same_alias_again_is_fine(image):
     cli.main(["add", "night", str(image), "-a", "n"])
     assert cli.main(["alias", "night", "n"]) == 0
-    assert config.load_aliases() == {"n": "night"}
+    assert config.load_library().aliases == {"n": "night"}
 
 
 def test_default_can_be_chosen_by_alias(image, applied):
     cli.main(["add", "night", str(image), "-a", "n"])
     assert cli.main(["default", "n"]) == 0
-    assert config.get_default() == "night"
+    assert config.load_library().default == "night"
     assert cli.main([]) == 0
     assert applied == [stored("night")]
 
@@ -75,14 +75,14 @@ def test_default_can_be_chosen_by_alias(image, applied):
 def test_removing_an_alias_keeps_the_wallpaper(image):
     cli.main(["add", "night", str(image), "-a", "n"])
     assert cli.main(["remove", "n"]) == 0
-    assert config.load_aliases() == {}
-    assert "night" in config.load()
+    assert config.load_library().aliases == {}
+    assert "night" in config.load_library().wallpapers
 
 
 def test_removing_a_wallpaper_removes_its_aliases(image, applied):
     cli.main(["add", "night", str(image), "-a", "n", "-a", "dark"])
     assert cli.main(["remove", "night"]) == 0
-    assert config.load_aliases() == {}
+    assert config.load_library().aliases == {}
     assert cli.main(["n"]) == 1
     assert applied == []
 
