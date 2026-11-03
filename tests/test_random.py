@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from helpers import add_images, stored
+from helpers import add_images, save_wallpapers, stored
 from py_bg_changer import cli, config
 
 
@@ -84,7 +84,7 @@ def test_random_with_nothing_saved_fails(applied, capsys):
 
 
 def test_random_when_every_file_is_missing_fails(tmp_path, applied, capsys):
-    config.save({"gone": str(tmp_path / "gone.png")})
+    save_wallpapers({"gone": str(tmp_path / "gone.png")})
     assert cli.main(["random"]) == 1
     assert applied == []
     assert "exist any more" in capsys.readouterr().err
@@ -92,8 +92,8 @@ def test_random_when_every_file_is_missing_fails(tmp_path, applied, capsys):
 
 def test_setting_a_wallpaper_remembers_the_current_image(image, applied):
     cli.main(["add", "night", str(image)])
-    assert config.get_current() is None
+    assert config.load_state().current is None
     cli.main(["night"])
-    current = config.get_current()
+    current = config.load_state().current
     assert current is not None
     assert Path(current) == stored("night").resolve()

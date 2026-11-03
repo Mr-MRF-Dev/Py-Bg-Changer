@@ -1,8 +1,9 @@
+from helpers import save_wallpapers
 from py_bg_changer import cli, config
 
 
 def test_list_marks_missing_files(tmp_path, capsys):
-    config.save({"gone": str(tmp_path / "gone.png")})
+    save_wallpapers({"gone": str(tmp_path / "gone.png")})
     assert cli.main(["list"]) == 0
     assert "(missing)" in capsys.readouterr().out
 
@@ -27,7 +28,7 @@ def test_rename_keeps_the_order_of_the_list(tmp_path):
         f.write_bytes(name.encode())
         cli.main(["add", name, str(f)])
     cli.main(["rename", "b", "x"])
-    assert list(config.load()) == ["a", "x", "c"]
+    assert list(config.load_library().wallpapers) == ["a", "x", "c"]
 
 
 def test_ls_is_short_for_list(image, capsys):

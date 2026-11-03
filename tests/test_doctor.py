@@ -1,3 +1,4 @@
+from helpers import save_wallpapers
 from py_bg_changer import cli, config, doctor, wallpaper
 
 
@@ -75,7 +76,7 @@ def test_a_corrupt_config_is_reported_and_doctor_keeps_going(
 
 def test_saved_wallpapers_and_missing_files_are_listed(tmp_path, monkeypatch, capsys):
     backend(monkeypatch, wallpaper.Backend("windows"))
-    config.save({"gone": str(tmp_path / "gone.png")})
+    save_wallpapers({"gone": str(tmp_path / "gone.png")})
     assert cli.main(["doctor"]) == 1
     out = capsys.readouterr().out
     assert "1 wallpaper(s)" in out
