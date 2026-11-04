@@ -180,6 +180,10 @@ uv run ruff check .  # lint
 uv run mypy          # check the types
 ```
 
+### ➕ Adding a command
+
+every command is one function in [`src/py_bg_changer/commands/`](/src/py_bg_changer/commands), registered with `@command(...)` (its name, arguments, help text and examples). The parser, the shorthand and the examples in `pbc --help` are built from that list, so a new command needs nothing else. Look at `commands/show.py` for the simplest ones.
+
 ## 🤝 Contributing
 
 we welcome any contributions you may have. If you're interested in helping out, fork the repository and create an [Issue](https://github.com/Mr-MRF-Dev/Py-Bg-Changer/issues) and [PR](https://github.com/Mr-MRF-Dev/Py-Bg-Changer/pulls).
