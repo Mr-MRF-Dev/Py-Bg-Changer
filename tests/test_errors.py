@@ -1,6 +1,7 @@
 import pytest
 
 from py_bg_changer import cli, errors
+from py_bg_changer.commands import apply
 
 
 def test_every_error_is_a_pbc_error():
@@ -40,7 +41,7 @@ def test_a_wallpaper_error_is_raised_as_it_is(image, monkeypatch):
     def refuse(path):
         raise errors.WallpaperError("the desktop said no")
 
-    monkeypatch.setattr(cli, "set_wallpaper", refuse)
+    monkeypatch.setattr(apply, "set_wallpaper", refuse)
     cli.main(["add", "night", str(image)])
     with pytest.raises(errors.WallpaperError, match="the desktop said no"):
         cli.run(["night"])

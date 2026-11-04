@@ -1,6 +1,6 @@
 import pytest
 
-from py_bg_changer import cli
+from py_bg_changer.commands import apply
 
 
 @pytest.fixture(autouse=True)
@@ -20,5 +20,5 @@ def image(tmp_path):
 def applied(monkeypatch):
     """Record the images that would be set, instead of touching the desktop."""
     calls = []
-    monkeypatch.setattr(cli, "set_wallpaper", calls.append)
+    monkeypatch.setattr(apply, "set_wallpaper", calls.append)
     return calls

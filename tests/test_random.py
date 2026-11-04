@@ -4,6 +4,7 @@ import pytest
 
 from helpers import add_images, save_wallpapers, stored
 from py_bg_changer import cli, config
+from py_bg_changer.commands import apply
 
 
 @pytest.fixture
@@ -15,7 +16,7 @@ def first_choice(monkeypatch):
         offered.append(list(seq))
         return seq[0]
 
-    monkeypatch.setattr(cli.random, "choice", choose)
+    monkeypatch.setattr(apply.random, "choice", choose)
     return offered
 
 
