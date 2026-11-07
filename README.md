@@ -184,6 +184,10 @@ uv run mypy          # check the types
 
 every command is one function in [`src/py_bg_changer/commands/`](/src/py_bg_changer/commands), registered with `@command(...)` (its name, arguments, help text and examples). The parser, the shorthand and the examples in `pbc --help` are built from that list, so a new command needs nothing else. Look at `commands/show.py` for the simplest ones.
 
+### 🖥️ Adding a desktop
+
+every way of setting the wallpaper is one small class in [`src/py_bg_changer/backends/`](/src/py_bg_changer/backends): it says which machines it fits (`matches`), which tools it needs, and how to set an image (`set`). To support a new desktop, write a class like `kde.py` and add it to the `BACKENDS` list in `backends/__init__.py` (the first one that fits is used, so the `feh` fallback stays last). `pbc doctor` shows it automatically.
+
 ## 🤝 Contributing
 
 we welcome any contributions you may have. If you're interested in helping out, fork the repository and create an [Issue](https://github.com/Mr-MRF-Dev/Py-Bg-Changer/issues) and [PR](https://github.com/Mr-MRF-Dev/Py-Bg-Changer/pulls).
