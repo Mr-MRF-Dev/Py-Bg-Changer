@@ -1,6 +1,7 @@
 import pytest
 
-from py_bg_changer import doctor, gui, wallpaper
+from py_bg_changer import doctor, gui
+from py_bg_changer.backends import BackendInfo
 
 
 @pytest.fixture
@@ -42,9 +43,7 @@ def test_unexpected_errors_show_a_message(monkeypatch, popups):
 
 
 def test_a_report_with_problems_is_shown_in_a_message(monkeypatch, popups):
-    info = wallpaper.Backend(
-        "none", supported=False, note="this desktop is not supported"
-    )
+    info = BackendInfo("none", supported=False, note="this desktop is not supported")
     monkeypatch.setattr(doctor, "backend_info", lambda: info)
     assert gui.main(["doctor"]) == 1
     assert len(popups) == 1

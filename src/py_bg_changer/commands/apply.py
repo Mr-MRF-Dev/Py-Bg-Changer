@@ -6,9 +6,9 @@ import random
 from pathlib import Path
 
 from .. import config
+from ..backends import set_wallpaper
 from ..errors import ConfigError, UserError
 from ..library import Library, resolved_path
-from ..wallpaper import set_wallpaper
 from .registry import arg, command
 
 

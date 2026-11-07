@@ -1,5 +1,6 @@
 from helpers import save_wallpapers
-from py_bg_changer import cli, config, doctor, wallpaper
+from py_bg_changer import cli, config, doctor
+from py_bg_changer.backends import BackendInfo
 
 
 def backend(monkeypatch, info):
@@ -15,7 +16,7 @@ def installed(monkeypatch, *tools):
 
 
 def test_everything_in_place(monkeypatch, capsys):
-    backend(monkeypatch, wallpaper.Backend("gnome", ("gsettings",)))
+    backend(monkeypatch, BackendInfo("gnome", ("gsettings",)))
     installed(monkeypatch, "gsettings")
     assert cli.main(["doctor"]) == 0
     out = capsys.readouterr().out
@@ -25,7 +26,7 @@ def test_everything_in_place(monkeypatch, capsys):
 
 
 def test_a_missing_tool_is_a_problem(monkeypatch, capsys):
-    backend(monkeypatch, wallpaper.Backend("gnome", ("gsettings",)))
+    backend(monkeypatch, BackendInfo("gnome", ("gsettings",)))
     installed(monkeypatch)
     assert cli.main(["doctor"]) == 1
     out = capsys.readouterr().out
@@ -34,7 +35,7 @@ def test_a_missing_tool_is_a_problem(monkeypatch, capsys):
 
 
 def test_one_of_two_tools_is_enough(monkeypatch):
-    info = wallpaper.Backend("fallback", ("feh", "nitrogen"), any_of=True)
+    info = BackendInfo("fallback", ("feh", "nitrogen"), any_of=True)
     backend(monkeypatch, info)
     installed(monkeypatch, "nitrogen")
     assert cli.main(["doctor"]) == 0
@@ -43,7 +44,7 @@ def test_one_of_two_tools_is_enough(monkeypatch):
 
 
 def test_optional_tools_are_never_a_problem(monkeypatch, capsys):
-    info = wallpaper.Backend(
+    info = BackendInfo(
         "xfce", ("xfconf-query",), optional=("xrandr",), note="xrandr is optional"
     )
     backend(monkeypatch, info)
@@ -55,7 +56,7 @@ def test_optional_tools_are_never_a_problem(monkeypatch, capsys):
 
 
 def test_an_unsupported_desktop_is_a_problem(monkeypatch, capsys):
-    info = wallpaper.Backend(
+    info = BackendInfo(
         "none", supported=False, note="this Wayland desktop is not supported yet"
     )
     backend(monkeypatch, info)
@@ -66,7 +67,7 @@ def test_an_unsupported_desktop_is_a_problem(monkeypatch, capsys):
 def test_a_corrupt_config_is_reported_and_doctor_keeps_going(
     tmp_path, monkeypatch, capsys
 ):
-    backend(monkeypatch, wallpaper.Backend("windows"))
+    backend(monkeypatch, BackendInfo("windows"))
     config.config_path().write_text("{oops", encoding="utf-8")
     assert cli.main(["doctor"]) == 1
     out = capsys.readouterr().out
@@ -75,7 +76,7 @@ def test_a_corrupt_config_is_reported_and_doctor_keeps_going(
 
 
 def test_saved_wallpapers_and_missing_files_are_listed(tmp_path, monkeypatch, capsys):
-    backend(monkeypatch, wallpaper.Backend("windows"))
+    backend(monkeypatch, BackendInfo("windows"))
     save_wallpapers({"gone": str(tmp_path / "gone.png")})
     assert cli.main(["doctor"]) == 1
     out = capsys.readouterr().out

@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import platform
 import shutil
 from pathlib import Path
 
 from . import __version__, cache, config
+from .backends import Environment, backend_info
 from .errors import ConfigError
-from .wallpaper import backend_info
 
 
 def _line(label: str, value: object) -> None:
@@ -20,12 +19,9 @@ def run() -> int:
     problems = 0
     _line("Version:", __version__)
     _line("Python:", f"{platform.python_version()} on {platform.platform()}")
-    if platform.system() == "Linux":
-        seen = ", ".join(
-            f"{name}={os.environ.get(name, '')!r}"
-            for name in ("XDG_CURRENT_DESKTOP", "DESKTOP_SESSION", "XDG_SESSION_TYPE")
-        )
-        _line("Desktop:", seen)
+    env = Environment.detect()
+    if env.system == "Linux":
+        _line("Desktop:", env.describe())
 
     path = config.config_path()
     _line("Config:", f"{path}" + ("" if path.exists() else "  (not created yet)"))
