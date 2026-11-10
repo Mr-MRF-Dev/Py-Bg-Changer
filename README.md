@@ -166,7 +166,9 @@ when a new version needs your saved files in a different layout, it moves them b
   {
     "version": 2,
     "current": "/home/me/.config/py-bg-changer/wallpapers/3e23e8160039594a.png",
-    "history": ["/home/me/.config/py-bg-changer/wallpapers/ca978112ca1bbdca.png"]
+    "history": [
+      "/home/me/.config/py-bg-changer/wallpapers/ca978112ca1bbdca.png"
+    ]
   }
   ```
 
