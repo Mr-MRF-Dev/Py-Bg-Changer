@@ -23,6 +23,7 @@ def test_everything_in_place(monkeypatch, capsys):
     assert "[ok] gsettings" in out
     assert "Everything looks fine" in out
     assert str(config.config_path()) in out
+    assert str(config.state_path()) in out
 
 
 def test_a_missing_tool_is_a_problem(monkeypatch, capsys):
