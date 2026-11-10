@@ -6,7 +6,7 @@ import platform
 import shutil
 from pathlib import Path
 
-from . import __version__, cache, config
+from . import __version__, cache, config, migrations
 from .backends import Environment, backend_info
 from .errors import ConfigError
 
@@ -25,13 +25,21 @@ def run() -> int:
 
     path = config.config_path()
     _line("Config:", f"{path}" + ("" if path.exists() else "  (not created yet)"))
+    state = config.state_path()
+    _line("State:", f"{state}" + ("" if state.exists() else "  (not created yet)"))
     _line("Images:", cache.cache_dir())
     try:
+        migration = migrations.migrate()
         library = config.load_library()
     except ConfigError as exc:
         problems += 1
         _line("Saved:", f"cannot be read: {exc}")
     else:
+        if migration is not None:
+            _line(
+                "Moved:",
+                f"your saved files were moved to the new layout, backup: {migration.backup}",
+            )
         saved = (
             f"{len(library.wallpapers)} wallpaper(s), {len(library.aliases)} alias(es)"
         )
