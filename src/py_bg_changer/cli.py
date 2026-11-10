@@ -8,9 +8,10 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections.abc import Callable
 from typing import NoReturn
 
-from . import __version__
+from . import __version__, migrations
 from .commands import COMMANDS, all_names
 from .errors import PbcError, UsageError
 
@@ -50,13 +51,16 @@ def build_parser() -> argparse.ArgumentParser:
         )
         # Remember which function runs it and which of its arguments it takes.
         dests = [p.add_argument(*a.flags, **a.options).dest for a in command.args]
-        p.set_defaults(_handler=command.handler, _dests=dests)
+        p.set_defaults(_handler=command.handler, _dests=dests, _migrate=command.migrate)
     return parser
 
 
-def run(argv: list[str] | None = None) -> int:
+def run(
+    argv: list[str] | None = None, notify: Callable[[str], None] | None = None
+) -> int:
     """Run one command and return its exit code.
 
+    Old saved files are migrated first. `notify` is told (once) when that happened.
     Problems are raised as `PbcError`; `main` shows them in the terminal.
     """
     args_list = list(sys.argv[1:] if argv is None else argv)
@@ -71,13 +75,17 @@ def run(argv: list[str] | None = None) -> int:
     handler = getattr(args, "_handler", None)
     if handler is None:
         return 0
+    if args._migrate:
+        migration = migrations.migrate()
+        if migration is not None and notify is not None:
+            notify(migration.notice)
     result: int | None = handler(**{dest: getattr(args, dest) for dest in args._dests})
     return result or 0
 
 
 def main(argv: list[str] | None = None) -> int:
     try:
-        return run(argv)
+        return run(argv, notify=lambda text: print(text, file=sys.stderr))
     except PbcError as exc:
         print(exc, file=sys.stderr)
         return exc.exit_code

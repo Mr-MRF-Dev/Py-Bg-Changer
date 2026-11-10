@@ -34,6 +34,7 @@ class Command:
     aliases: tuple[str, ...] = ()
     args: tuple[Arg, ...] = ()
     examples: tuple[tuple[str, str], ...] = ()  # (what to type, what it does)
+    migrate: bool = True  # move old saved files to the new layout before running it
 
 
 COMMANDS: list[Command] = []
@@ -51,19 +52,23 @@ def command(
     aliases: tuple[str, ...] = (),
     args: tuple[Arg, ...] = (),
     examples: tuple[tuple[str, str], ...] = (),
+    migrate: bool = True,
 ) -> Callable[[Handler], Handler]:
     """Register the function below as a command.
 
     The function gets one parameter for each argument, named like the argument's
     `dest` (the name of the argument, or `dest=` when it is given). It returns None,
     or an exit code when it needs one other than 0. Problems are raised as `PbcError`.
+
+    Old saved files are migrated before it runs, unless `migrate=False`: a command that
+    has to work even when the files are broken (`doctor`, `path`) must not fail early.
     """
 
     def register(handler: Handler) -> Handler:
         taken = all_names() & {name, *aliases}
         if taken:
             raise ValueError(f"command name already in use: {', '.join(sorted(taken))}")
-        COMMANDS.append(Command(name, help, handler, aliases, args, examples))
+        COMMANDS.append(Command(name, help, handler, aliases, args, examples, migrate))
         return handler
 
     return register

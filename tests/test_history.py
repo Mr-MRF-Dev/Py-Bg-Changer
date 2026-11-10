@@ -150,6 +150,7 @@ def test_history_starts_from_the_current_image_of_an_older_version(tmp_path, app
     add_images(tmp_path, "a", "b")
     path = config.config_path()
     data = json.loads(path.read_text(encoding="utf-8"))
+    data.pop("version")  # a file of version 1 does not say which version it is
     data["current"] = str(stored("a").resolve())  # no "history" key yet
     path.write_text(json.dumps(data), encoding="utf-8")
     cli.main(["b"])
@@ -164,6 +165,7 @@ def test_an_older_history_that_ended_with_the_current_image_still_works(
     path = config.config_path()
     data = json.loads(path.read_text(encoding="utf-8"))
     a, b = str(stored("a").resolve()), str(stored("b").resolve())
+    data.pop("version")  # a file of version 1 does not say which version it is
     data["history"], data["current"] = [a, b], b
     path.write_text(json.dumps(data), encoding="utf-8")
     assert cli.main(["back"]) == 0

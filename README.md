@@ -123,7 +123,9 @@ then update with the same tool you used to install it:
 | `uvx` (no install)         | `uvx --from py-bg-changer@latest pbc` (`@latest` skips the cached copy) |
 | from source (`--editable`) | `git pull`, then `uv tool install --editable --reinstall .`             |
 
-> your saved wallpapers, aliases and config are never touched by an update. Run `pbc --version` again to make sure it worked.
+> your saved wallpapers, aliases and config are kept by an update. Run `pbc --version` again to make sure it worked.
+
+when a new version needs your saved files in a different layout, it moves them by itself before the first command runs, tells you once, and keeps a backup next to the config (for example `config.json.v1.bak`). Going back to an older version still works: it finds your wallpapers, aliases and default, only the "set now" and history start empty.
 
 ## 💡 Tips
 
@@ -135,11 +137,11 @@ then update with the same tool you used to install it:
 
   it prints nothing on success, so use `pbc` in a terminal for `list`, `default` and the like.
 
-- `pbc random` sets one of your saved wallpapers at random. It skips images whose file is missing, and (when you have more than one) it never picks the image that is set right now, so you always get a change. To know that, the last image set is remembered in the config file under `current`. It works from Win+R too: `pbcw random`.
+- `pbc random` sets one of your saved wallpapers at random. It skips images whose file is missing, and (when you have more than one) it never picks the image that is set right now, so you always get a change. To know that, the last image set is remembered in the state file (see below). It works from Win+R too: `pbcw random`.
 
 - On Linux with a bare X11 window manager (i3, bspwm, ...) install `feh` (`sudo pacman -S feh` on Arch). feh remembers the last wallpaper in `~/.fehbg`, so add `~/.fehbg &` to your window manager's startup to get it back after a restart.
 
-- `pbc current` and `pbc back` only know about images that py-bg-changer set itself. The 5 previous images are kept in the config file under `history`, like a stack (the image that is set now is stored under `current`, not in `history`). `pbc back` takes the newest one (skipping images whose file is gone), and it works from Win+R too: `pbcw back`.
+- `pbc current` and `pbc back` only know about images that py-bg-changer set itself. The 5 previous images are kept in the state file (see below) under `history`, like a stack (the image that is set now is stored under `current`, not in `history`). `pbc back` takes the newest one (skipping images whose file is gone), and it works from Win+R too: `pbcw back`.
 
 - If a wallpaper does not change, run `pbc doctor`. It shows your OS, desktop and session type, the config and image folder, and whether the tools that your desktop needs are installed. Please include its output when you open an issue.
 
@@ -147,15 +149,26 @@ then update with the same tool you used to install it:
 
 - When you save an image, `py-bg-changer` keeps its own copy next to the config file and gives that copy to the system. If you later move or delete the original, the wallpaper still works. The copy is removed when you remove the name (or replace its image), and your original file is never touched.
 
-- Saved names live in a small JSON file, and the copied images in a `wallpapers` folder next to it. Run `pbc path` to see where, or set `PBC_CONFIG` to use a different file.
+- Two small JSON files are used, and the copied images live in a `wallpapers` folder next to the first one. `config.json` has what you saved (so you can keep it in your dotfiles), and `state.json` has what the program remembers by itself (the wallpaper that is set now and the history), so setting a wallpaper never rewrites your config. `pbc path` shows where the config is, and `pbc doctor` shows both. Set `PBC_CONFIG` to use a different config (the state is then kept next to it), or `PBC_STATE` to choose the state file.
 
   ```json
   {
+    "version": 2,
     "wallpapers": {
       "night": "/home/me/.config/py-bg-changer/wallpapers/3e23e8160039594a.png"
     },
     "aliases": { "n": "night", "dark": "night" },
     "default": "night"
+  }
+  ```
+
+  ```json
+  {
+    "version": 2,
+    "current": "/home/me/.config/py-bg-changer/wallpapers/3e23e8160039594a.png",
+    "history": [
+      "/home/me/.config/py-bg-changer/wallpapers/ca978112ca1bbdca.png"
+    ]
   }
   ```
 

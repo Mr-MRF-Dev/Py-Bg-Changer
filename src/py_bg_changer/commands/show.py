@@ -48,11 +48,12 @@ def cmd_list() -> None:
     "doctor",
     help="check your setup if a wallpaper does not change",
     examples=(("pbc doctor", "check your setup if nothing changes"),),
+    migrate=False,  # it checks the files itself, and has to work when they are broken
 )
 def cmd_doctor() -> int:
     return doctor.run()
 
 
-@command("path", help="print where the config file lives")
+@command("path", help="print where the config file lives", migrate=False)
 def cmd_path() -> None:
     print(config.config_path())

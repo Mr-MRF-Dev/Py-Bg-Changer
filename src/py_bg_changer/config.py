@@ -1,23 +1,31 @@
-"""Reading and writing the config file.
+"""Reading and writing the two files of the program.
 
-The file format is the same as the original bg.py, plus an optional default and
-optional aliases (extra names for a saved wallpaper):
+`config.json` holds what the user saved. Its format is the same as the original
+bg.py, plus an optional default and optional aliases (extra names for a wallpaper):
 
     {
+      "version": 2,
       "wallpapers": {"night": "/path/to/image.jpg"},
       "aliases": {"n": "night", "dark": "night"},
       "default": "night"
     }
+
+`state.json` holds what the program remembers by itself, so that setting a wallpaper
+never rewrites the config:
+
+    {"version": 2, "current": "/path/to/image.jpg", "history": ["/path/to/older.jpg"]}
+
+See `schema.py` for the versions and `migrations.py` for how old files are moved.
 """
 
 from __future__ import annotations
 
-import json
 import os
 import platform
 from pathlib import Path
 from typing import Any
 
+from . import jsonfile, schema
 from .errors import ConfigError
 from .library import Library
 from .state import State
@@ -44,32 +52,46 @@ def config_path() -> Path:
     return config_dir() / "config.json"
 
 
-def _read_raw() -> dict[str, Any]:
+def state_dir() -> Path:
+    """Where things that change by themselves go (not the user's own settings)."""
+    system = platform.system()
+    if system == "Windows":
+        base = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
+    elif system == "Darwin":
+        base = Path.home() / "Library" / "Application Support"
+    else:
+        base = Path(
+            os.environ.get("XDG_STATE_HOME") or Path.home() / ".local" / "state"
+        )
+    return base / APP_NAME
+
+
+def state_path() -> Path:
+    """Default location, or whatever PBC_STATE points to.
+
+    With a custom PBC_CONFIG the state is kept next to it, so that pointing the
+    program at another config also gives it another state.
+    """
+    override = os.environ.get("PBC_STATE")
+    if override:
+        return Path(override).expanduser()
+    if os.environ.get("PBC_CONFIG"):
+        return config_path().with_name("state.json")
+    return state_dir() / "state.json"
+
+
+def _read_config() -> dict[str, Any]:
     path = config_path()
     if not path.exists():
         return {}
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise ConfigError(f"Could not read {path}: {exc}") from exc
-    if not isinstance(data, dict):
-        raise ConfigError(f"{path} has an unexpected format (expected a JSON object).")
+    data = jsonfile.read(path)
+    schema.check_supported(schema.config_version(data, path), path)
     return data
-
-
-def _write(data: dict[str, Any]) -> None:
-    path = config_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(
-        json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
-    tmp.replace(path)
 
 
 def load_library() -> Library:
     """The saved wallpapers, aliases and default. Empty if nothing is saved yet."""
-    data = _read_raw()
+    data = _read_config()
     wallpapers = data.get("wallpapers", {})
     if not isinstance(wallpapers, dict):
         raise ConfigError(
@@ -90,42 +112,51 @@ def load_library() -> Library:
 
 def save_library(library: Library) -> None:
     """Write the library back in one go, keeping any other keys already in the file."""
-    data = _read_raw()
+    path = config_path()
+    data = _read_config()
     data["wallpapers"] = library.wallpapers
     for key, value in (("aliases", library.aliases), ("default", library.default)):
         if value:
             data[key] = value
         else:
             data.pop(key, None)
-    _write(data)
+    # A file that still holds the state of version 1 has to be migrated first.
+    if schema.config_version(data, path) >= schema.CURRENT_VERSION:
+        data["version"] = schema.CURRENT_VERSION
+    jsonfile.write(path, data)
+
+
+def _read_state() -> dict[str, Any]:
+    path = state_path()
+    if not path.exists():
+        return {}
+    data = jsonfile.read(path)
+    schema.check_supported(schema.declared_version(data, path) or 1, path)
+    return data
 
 
 def load_state() -> State:
     """The image set last and the ones before it. Empty if none is known."""
-    data = _read_raw()
+    data = _read_state()
     current = data.get("current")
     history = data.get("history")
-    items = (
-        [item for item in history if isinstance(item, str)]
-        if isinstance(history, list)
-        else []
-    )
-    # An earlier format also kept the image that is set now at the end. It does not
-    # belong in the history, so drop it.
-    while items and items[-1] == current:
-        items.pop()
     return State(
         current=current if isinstance(current, str) and current else None,
-        history=items,
+        history=(
+            [item for item in history if isinstance(item, str)]
+            if isinstance(history, list)
+            else []
+        ),
     )
 
 
 def save_state(state: State) -> None:
     """Write the state back, keeping any other keys already in the file."""
-    data = _read_raw()
+    data = _read_state()
+    data["version"] = schema.CURRENT_VERSION
     if state.current:
         data["current"] = state.current
     else:
         data.pop("current", None)
     data["history"] = state.history
-    _write(data)
+    jsonfile.write(state_path(), data)
