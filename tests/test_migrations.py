@@ -373,6 +373,52 @@ def test_it_waits_for_a_lock_that_is_released(v1):
     assert migrations.migrate() is not None
 
 
+def deny_the_lock(monkeypatch, times=None):
+    """Make creating the lock file fail with "permission denied" (`times` times)."""
+    real_open = os.open
+    denied = []
+
+    def open_(path, flags, *args, **kwargs):
+        if str(path).endswith(".lock") and (times is None or len(denied) < times):
+            denied.append(path)
+            raise PermissionError(13, "Permission denied")
+        return real_open(path, flags, *args, **kwargs)
+
+    monkeypatch.setattr(migrations.os, "open", open_)
+    return denied
+
+
+def test_a_lock_that_windows_is_still_deleting_is_waited_for(v1, monkeypatch):
+    # Windows says "permission denied", not "file exists", for a lock that was just
+    # released and is not gone yet
+    monkeypatch.setattr(migrations, "_IS_WINDOWS", True)
+    denied = deny_the_lock(monkeypatch, times=3)
+    assert migrations.migrate() is not None
+    assert len(denied) == 3
+    assert not config.config_path().with_name("config.json.lock").exists()
+
+
+def test_permission_denied_for_the_lock_is_a_real_error_outside_windows(
+    v1, monkeypatch
+):
+    monkeypatch.setattr(migrations, "_IS_WINDOWS", False)
+    denied = deny_the_lock(monkeypatch)
+    with pytest.raises(ConfigError, match="Could not move your saved files"):
+        migrations.migrate()
+    assert len(denied) == 1  # no waiting
+    assert config.config_path().read_text(encoding="utf-8") == v1
+
+
+def test_permission_denied_that_never_clears_up_is_reported_as_it_is(v1, monkeypatch):
+    monkeypatch.setattr(migrations, "_IS_WINDOWS", True)
+    monkeypatch.setattr(migrations, "LOCK_TIMEOUT", 0.2)
+    deny_the_lock(monkeypatch)
+    with pytest.raises(ConfigError, match="Permission denied") as error:
+        migrations.migrate()
+    assert "Another py-bg-changer" not in str(error.value)
+    assert config.config_path().read_text(encoding="utf-8") == v1
+
+
 def test_the_lock_is_released_when_the_migration_fails(v1, failing_write):
     failing_write(1)
     with pytest.raises(ConfigError):

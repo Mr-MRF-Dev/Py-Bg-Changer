@@ -25,6 +25,7 @@ from __future__ import annotations
 import contextlib
 import os
 import shutil
+import sys
 import time
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
@@ -36,6 +37,7 @@ from .state import HISTORY_LIMIT
 
 LOCK_TIMEOUT = 5.0  # seconds to wait for another program that is migrating
 LOCK_STALE = 30.0  # a lock that is older than this was left behind by a crash
+_IS_WINDOWS = sys.platform == "win32"
 
 
 @dataclass(frozen=True)
@@ -113,14 +115,25 @@ def _lock(path: Path) -> Iterator[None]:
         try:
             fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
             break
-        except FileExistsError:
+        except (FileExistsError, PermissionError) as exc:
+            # On Windows a lock that was just released is "permission denied" (not
+            # "file exists") until it is really gone, so that is a lock to wait for.
+            # Anywhere else it is a real problem (e.g. a read-only folder).
+            if isinstance(exc, PermissionError) and not _IS_WINDOWS:
+                raise
             try:
                 if time.time() - lock.stat().st_mtime > LOCK_STALE:
                     lock.unlink()
                     continue
             except FileNotFoundError:
-                continue  # it was just released: try again
+                if isinstance(exc, FileExistsError):
+                    continue  # it was just released: try again
+                # "permission denied" and no file: wait below, but not for ever
+            except PermissionError:
+                pass  # still being deleted: wait like for any other lock
             if time.monotonic() > deadline:
+                if isinstance(exc, PermissionError):
+                    raise  # it never cleared up, so this is a real problem
                 raise ConfigError(
                     f"Another py-bg-changer is moving your files (waited {LOCK_TIMEOUT:g}s). "
                     f"If none is running, delete {lock} and try again."

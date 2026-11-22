@@ -1,4 +1,4 @@
-from helpers import stored
+from helpers import png, stored
 from py_bg_changer import cache, cli, config
 
 
@@ -25,7 +25,7 @@ def test_alias_can_be_added_through_another_alias(image):
 
 def test_alias_cannot_reuse_a_wallpaper_name(tmp_path, image, capsys):
     other = tmp_path / "other.png"
-    other.write_bytes(b"y")
+    other.write_bytes(png(b"y"))
     cli.main(["add", "night", str(image)])
     cli.main(["add", "day", str(other)])
     assert cli.main(["alias", "night", "day"]) == 1
@@ -35,7 +35,7 @@ def test_alias_cannot_reuse_a_wallpaper_name(tmp_path, image, capsys):
 
 def test_alias_cannot_point_to_two_wallpapers(tmp_path, image, capsys):
     other = tmp_path / "other.png"
-    other.write_bytes(b"y")
+    other.write_bytes(png(b"y"))
     cli.main(["add", "night", str(image), "-a", "n"])
     cli.main(["add", "day", str(other)])
     assert cli.main(["alias", "day", "n"]) == 1
@@ -51,7 +51,7 @@ def test_name_cannot_be_an_existing_alias(image, capsys):
 
 def test_failed_add_changes_nothing(tmp_path, image):
     other = tmp_path / "other.png"
-    other.write_bytes(b"y")
+    other.write_bytes(png(b"y"))
     cli.main(["add", "night", str(image)])
     assert cli.main(["add", "day", str(other), "-a", "night"]) == 1
     assert list(config.load_library().wallpapers) == ["night"]
@@ -89,7 +89,7 @@ def test_removing_a_wallpaper_removes_its_aliases(image, applied):
 
 def test_aliases_follow_a_replaced_image(image, applied):
     cli.main(["add", "night", str(image), "-a", "n"])
-    image.write_bytes(b"different")
+    image.write_bytes(png(b"different"))
     cli.main(["add", "night", str(image)])
     assert cli.main(["n"]) == 0
     assert applied == [stored("night")]

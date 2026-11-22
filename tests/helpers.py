@@ -5,6 +5,16 @@ from pathlib import Path
 from py_bg_changer import cli, config
 from py_bg_changer.library import Library
 
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+
+
+def png(content=b""):
+    """The bytes of a tiny fake image that passes the type check of `pbc add`.
+
+    Different `content` gives a different file (so a different cached copy).
+    """
+    return PNG_SIGNATURE + content
+
 
 def stored(name):
     """Path of the copy that is kept for a saved name."""
@@ -15,7 +25,7 @@ def add_images(tmp_path, *names):
     """Save one small image per name, each with different content."""
     for name in names:
         f = tmp_path / f"{name}.png"
-        f.write_bytes(name.encode())
+        f.write_bytes(png(name.encode()))
         cli.main(["add", name, str(f)])
 
 
