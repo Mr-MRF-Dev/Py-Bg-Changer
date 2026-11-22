@@ -1,5 +1,6 @@
 import pytest
 
+from helpers import png
 from py_bg_changer.commands import apply
 
 
@@ -12,7 +13,7 @@ def isolated_config(tmp_path, monkeypatch):
 @pytest.fixture
 def image(tmp_path):
     f = tmp_path / "pic.png"
-    f.write_bytes(b"x")
+    f.write_bytes(png(b"x"))
     return f
 
 
