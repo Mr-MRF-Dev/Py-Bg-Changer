@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .. import cache, config
+from .. import cache, config, imagetype
 from ..errors import UserError
 from ..library import resolved_path
 from .registry import arg, command
@@ -13,7 +13,7 @@ from .registry import arg, command
     help="save an image under a name",
     args=(
         arg("name"),
-        arg("path"),
+        arg("path", help=f"an image file ({imagetype.supported()})"),
         arg(
             "-a",
             "--alias",
@@ -41,6 +41,7 @@ def cmd_add(
     source = resolved_path(path)
     if not source.is_file():
         raise UserError(f"File not found: {source}")
+    imagetype.check(source)  # before anything is copied or saved
 
     library = config.load_library()
     extra = library.check_new(name, aliases or [])  # before anything is copied
