@@ -1,4 +1,4 @@
-from helpers import save_wallpapers, stored
+from helpers import png, save_wallpapers, stored
 from py_bg_changer import cli, config
 
 
@@ -14,7 +14,7 @@ def test_default_command_sets_and_shows(image, capsys):
 
 def test_no_arguments_sets_the_chosen_default(tmp_path, image, applied):
     other = tmp_path / "other.png"
-    other.write_bytes(b"y")
+    other.write_bytes(png(b"y"))
     cli.main(["add", "day", str(image)])
     cli.main(["add", "night", str(other)])
     cli.main(["default", "night"])

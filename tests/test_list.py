@@ -1,4 +1,4 @@
-from helpers import save_wallpapers
+from helpers import png, save_wallpapers
 from py_bg_changer import cli, config
 
 
@@ -25,7 +25,7 @@ def test_list_shows_aliases(image, capsys):
 def test_rename_keeps_the_order_of_the_list(tmp_path):
     for name in ("a", "b", "c"):
         f = tmp_path / f"{name}.png"
-        f.write_bytes(name.encode())
+        f.write_bytes(png(name.encode()))
         cli.main(["add", name, str(f)])
     cli.main(["rename", "b", "x"])
     assert list(config.load_library().wallpapers) == ["a", "x", "c"]

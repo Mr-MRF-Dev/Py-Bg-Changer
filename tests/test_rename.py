@@ -1,4 +1,4 @@
-from helpers import stored
+from helpers import png, stored
 from py_bg_changer import cli, config
 
 
@@ -31,7 +31,7 @@ def test_rename_an_alias(image, applied):
 
 def test_rename_cannot_take_an_existing_wallpaper_name(tmp_path, image, capsys):
     other = tmp_path / "other.png"
-    other.write_bytes(b"y")
+    other.write_bytes(png(b"y"))
     cli.main(["add", "night", str(image)])
     cli.main(["add", "day", str(other)])
     assert cli.main(["rename", "night", "day"]) == 1
@@ -41,7 +41,7 @@ def test_rename_cannot_take_an_existing_wallpaper_name(tmp_path, image, capsys):
 
 def test_rename_cannot_take_an_existing_alias(tmp_path, image, capsys):
     other = tmp_path / "other.png"
-    other.write_bytes(b"y")
+    other.write_bytes(png(b"y"))
     cli.main(["add", "night", str(image)])
     cli.main(["add", "day", str(other), "-a", "d"])
     assert cli.main(["rename", "night", "d"]) == 1

@@ -1,4 +1,4 @@
-from helpers import stored
+from helpers import png, stored
 from py_bg_changer import cache, cli
 
 
@@ -38,7 +38,7 @@ def test_shared_copy_lives_until_the_last_name_is_removed(image):
 def test_replacing_an_image_drops_the_old_copy(image):
     cli.main(["add", "a", str(image)])
     old = stored("a")
-    image.write_bytes(b"different")
+    image.write_bytes(png(b"different"))
     cli.main(["add", "a", str(image)])
     assert stored("a") != old
     assert stored("a").exists()
