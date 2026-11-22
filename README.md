@@ -147,6 +147,8 @@ when a new version needs your saved files in a different layout, it moves them b
 
 - A wallpaper can have as many aliases as you like, and every alias works anywhere a name does (`pbc n`, `pbc default n`, `pbc alias n moon`). Removing an alias leaves the wallpaper alone; removing a wallpaper also removes its aliases. Renaming a wallpaper keeps its aliases, its image and its place as the default.
 
+- `pbc add` only saves real images: the extension has to be one of `png`, `jpg`, `jpeg`, `bmp`, `gif`, `webp`, `tif`, `tiff`, `heic` or `heif`, and the start of the file has to match a known image format, so a text file renamed to `.png` is refused too. Which of these your desktop can show depends on your system (for example `webp` and `heic` are not shown everywhere).
+
 - When you save an image, `py-bg-changer` keeps its own copy next to the config file and gives that copy to the system. If you later move or delete the original, the wallpaper still works. The copy is removed when you remove the name (or replace its image), and your original file is never touched.
 
 - Two small JSON files are used, and the copied images live in a `wallpapers` folder next to the first one. `config.json` has what you saved (so you can keep it in your dotfiles), and `state.json` has what the program remembers by itself (the wallpaper that is set now and the history), so setting a wallpaper never rewrites your config. `pbc path` shows where the config is, and `pbc doctor` shows both. Set `PBC_CONFIG` to use a different config (the state is then kept next to it), or `PBC_STATE` to choose the state file.
